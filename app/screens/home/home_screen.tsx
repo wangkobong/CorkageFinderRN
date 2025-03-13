@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TitleText } from '../../components/title_text';
@@ -6,8 +6,14 @@ import { HomeRestaurantCategory, RestaurantCategoryInfo } from '../../models/res
 import SectionHeader from '../../components/section_header';
 import { getSampleRestaurants, RestaurantCard } from '../../models/restaurant';
 import RestaurantMiniCardView from './subView/restaurant_mini_card_view';
+import { useRestaurantStore } from '../../store/_restaurantStore';
 
 const HomeScreen = () => {
+    const restaurants = useRestaurantStore((state: any) => state.restaurants);
+
+    useEffect(() => {
+        console.log("홈 화면 레스토랑 데이터 개수:", restaurants?.length || 0);
+    }, [restaurants]);
 
     const titleSection = () => {
         return (

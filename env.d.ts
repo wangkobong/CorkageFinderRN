@@ -6,4 +6,6 @@ declare module '@env' {
   export const MESSAGING_SENDER_ID: string;
   export const APP_ID: string;
   export const MEASUREMENT_ID: string;
+  export const KAKAO_JS_KEY: string;
+  export const KAKAO_REST_API_KEY: string;
 } 

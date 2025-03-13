@@ -3,6 +3,7 @@
     "name": "corkageFinder",
     "slug": "corkageFinder",
     "version": "1.0.0",
+    "entryPoint": "./index.js",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",

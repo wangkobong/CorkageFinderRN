@@ -107,8 +107,9 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
     },
     headerContainer: {
+        paddingTop: 6,
         paddingLeft: 16,
-        paddingBottom: 8,
+        paddingBottom: 12,
         alignItems: 'center',
         width: '100%',
     },

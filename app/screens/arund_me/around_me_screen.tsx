@@ -4,11 +4,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { TitleText } from '../../components/title_text';
 import { WebView } from 'react-native-webview';
 import { KAKAO_JS_KEY } from '@env';
+import { useRestaurantStore } from '../../store/_restaurantStore';
+import SectionHeader from '@/app/components/section_header';
+
 const AroundMeScreen = () => {
   const [location, setLocation] = useState({
     latitude: 37.566826,  // 서울 시청 기본값
     longitude: 126.9786567
   });
+
+  const restaurants = useRestaurantStore((state: any) => state.restaurants);
+  
+  useEffect(() => {
+    console.log("레스토랑 데이터 개수:", restaurants?.length || 0);
+  }, [restaurants]);
 
   // 카카오맵 HTML 코드
   const kakaoMapHtml = `
@@ -29,14 +38,46 @@ const AroundMeScreen = () => {
         var container = document.getElementById('map');
         var options = {
           center: new kakao.maps.LatLng(${location.latitude}, ${location.longitude}),
-          level: 3
+          level: 10
         };
         var map = new kakao.maps.Map(container, options);
+        
+        // 현재 위치 마커
         var markerPosition = new kakao.maps.LatLng(${location.latitude}, ${location.longitude});
         var marker = new kakao.maps.Marker({
           position: markerPosition
         });
         marker.setMap(map);
+        
+        // 레스토랑 마커 추가
+        ${restaurants && restaurants.length > 0 ? `
+          // 레스토랑 데이터로 마커 생성
+          var restaurants = ${JSON.stringify(restaurants)};
+          
+          restaurants.forEach(function(restaurant) {
+            if (restaurant.latitude && restaurant.longitude) {
+              var restaurantMarker = new kakao.maps.Marker({
+                position: new kakao.maps.LatLng(restaurant.latitude, restaurant.longitude),
+                map: map
+              });
+              
+              // 인포윈도우 생성
+              var infowindow = new kakao.maps.InfoWindow({
+                content: '<div style="padding:5px; width:150px; text-align:center;">' + restaurant.name + '</div>'
+              });
+              
+              // 마커에 마우스오버 이벤트 등록
+              kakao.maps.event.addListener(restaurantMarker, 'mouseover', function() {
+                infowindow.open(map, restaurantMarker);
+              });
+              
+              // 마커에 마우스아웃 이벤트 등록
+              kakao.maps.event.addListener(restaurantMarker, 'mouseout', function() {
+                infowindow.close();
+              });
+            }
+          });
+        ` : ''}
       </script>
     </body>
     </html>
@@ -44,7 +85,9 @@ const AroundMeScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TitleText>내 주변</TitleText>
+      <View style={styles.headerContainer}>
+        <SectionHeader>내 주변</SectionHeader>
+      </View>
       <View style={styles.mapContainer}>
         <WebView
           originWhitelist={['*']}
@@ -62,6 +105,12 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#fff',
+    },
+    headerContainer: {
+        paddingLeft: 16,
+        paddingBottom: 8,
+        alignItems: 'center',
+        width: '100%',
     },
     mapContainer: {
         flex: 1,

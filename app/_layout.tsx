@@ -8,19 +8,18 @@ import 'react-native-reanimated';
 // Firebase 관련 import 추가
 import { initializeApp } from 'firebase/app';
 import { firebaseConfig } from '../firebaseConfig';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, collection, getDocs } from 'firebase/firestore';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
+// Zustand 스토어 import
+import { useRestaurantStore } from './store/_restaurantStore';
 
 // Firebase 초기화
 const app = initializeApp(firebaseConfig);
-console.log('Firebase 초기화 상태:', app);
-console.log("API Key:", firebaseConfig.apiKey);
 
 // Firebase 서비스 초기화
 // export const auth = getAuth(app);
 export const db = getFirestore(app);
-console.log("db:", db);
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -30,12 +29,38 @@ export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+  
+  // Zustand 스토어에서 데이터 설정 함수 가져오기
+  const setRestaurants = useRestaurantStore((state: any) => state.setRestaurants);
 
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
+
+  // Firestore 데이터 가져오기 및 Zustand 스토어에 저장
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // 레스토랑 데이터 가져오기
+        const restaurantsSnapshot = await getDocs(collection(db, "approved"));
+        const restaurantsData = restaurantsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        // Zustand 스토어에 레스토랑 데이터 저장
+        setRestaurants(restaurantsData);
+        console.log("레스토랑 데이터가 스토어에 저장되었습니다:", restaurantsData.length);
+        
+      } catch (error) {
+        console.error("Firestore 데이터 가져오기 오류:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   // Firebase 인증 상태 리스너 활성화 (필요한 경우)
   // useEffect(() => {

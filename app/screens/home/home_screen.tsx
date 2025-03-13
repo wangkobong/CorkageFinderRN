@@ -1,8 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TitleText } from '../../components/title_text';
 import { HomeRestaurantCategory, RestaurantCategoryInfo } from '../../models/restaurant_category';
+import SectionHeader from '../../components/section_header';
+import { getSampleRestaurants, RestaurantCard } from '../../models/restaurant';
+import RestaurantMiniCardView from './subView/restaurant_mini_card_view';
 
 const HomeScreen = () => {
 
@@ -51,6 +54,29 @@ const HomeScreen = () => {
             </View>
         );
     }
+
+    const popularRestaurantsSection = () => {
+        const popularRestaurants = getSampleRestaurants();
+        
+        return (
+            <View style={styles.popularRestaurantsSection}>
+                <SectionHeader>실시간 인기 콜키지</SectionHeader>
+                <FlatList
+                    horizontal
+                    data={popularRestaurants}
+                    keyExtractor={(item, index) => index.toString()}
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.horizontalListContent}
+                    renderItem={({ item }) => (
+                        <RestaurantMiniCardView 
+                            restaurant={item} 
+                            onPress={(restaurant) => console.log(`${restaurant.name} 선택됨`)}
+                        />
+                    )}
+                />
+            </View>
+        );
+    }
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView 
@@ -63,6 +89,7 @@ const HomeScreen = () => {
             >
                 {titleSection()}
                 {foodTypeSection()}
+                {popularRestaurantsSection()}
             </ScrollView>
         </SafeAreaView>
     );
@@ -121,6 +148,46 @@ const styles = StyleSheet.create({
     foodTypeText: {
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    popularRestaurantsSection: {
+        paddingHorizontal: 16,
+        paddingTop: 16,
+        alignItems: 'flex-start',
+        width: '100%',
+        marginBottom: 20,
+    },
+    horizontalListContent: {
+        paddingVertical: 16,
+    },
+    restaurantCard: {
+        width: 160,
+        marginRight: 16,
+        borderRadius: 12,
+        backgroundColor: '#fff',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+        overflow: 'hidden',
+    },
+    restaurantImage: {
+        width: '100%',
+        height: 120,
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+    },
+    restaurantInfo: {
+        padding: 12,
+    },
+    restaurantName: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginBottom: 4,
+    },
+    restaurantCategory: {
+        fontSize: 14,
+        color: '#666',
     },
 });
 

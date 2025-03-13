@@ -75,6 +75,11 @@ const AroundMeScreen = () => {
               kakao.maps.event.addListener(restaurantMarker, 'mouseout', function() {
                 infowindow.close();
               });
+
+              // 마커에 클릭 이벤트 등록
+              kakao.maps.event.addListener(restaurantMarker, 'click', function() {
+                window.ReactNativeWebView.postMessage(JSON.stringify(restaurant));
+              });
             }
           });
         ` : ''}
@@ -95,6 +100,15 @@ const AroundMeScreen = () => {
           style={styles.map}
           javaScriptEnabled={true}
           domStorageEnabled={true}
+          onMessage={(event) => {
+            try {
+              const restaurantInfo = JSON.parse(event.nativeEvent.data);
+              console.log('식당 정보:', restaurantInfo);
+              // 여기서 restaurantInfo를 사용하여 원하는 작업을 수행할 수 있습니다.
+            } catch (error) {
+              console.error('메시지 파싱 오류:', error);
+            }
+          }}
         />
       </View>
     </SafeAreaView>

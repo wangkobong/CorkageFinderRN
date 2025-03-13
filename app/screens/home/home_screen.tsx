@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { TitleText } from '../../components/title_text';
 import { HomeRestaurantCategory, RestaurantCategoryInfo } from '../../models/restaurant_category';
 import SectionHeader from '../../components/section_header';
-import { getSampleRestaurants, RestaurantCard } from '../../models/restaurant';
+import Restaurant, { getSampleRestaurants, RestaurantCard } from '../../models/restaurant';
 import RestaurantMiniCardView from './subView/restaurant_mini_card_view';
 import { useRestaurantStore } from '../../store/_restaurantStore';
 
@@ -14,6 +14,11 @@ const HomeScreen = () => {
     useEffect(() => {
         console.log("홈 화면 레스토랑 데이터 개수:", restaurants?.length || 0);
     }, [restaurants]);
+
+    const getRandomRestaurants = (restaurants: Restaurant[], count: number) => {
+        const shuffled = [...restaurants].sort(() => 0.5 - Math.random());
+        return shuffled.slice(0, count);
+    };
 
     const titleSection = () => {
         return (
@@ -62,7 +67,7 @@ const HomeScreen = () => {
     }
 
     const popularRestaurantsSection = () => {
-        const popularRestaurants = getSampleRestaurants();
+        const popularRestaurants = getRandomRestaurants(restaurants, 10);
         
         return (
             <View style={styles.popularRestaurantsSection}>
@@ -83,6 +88,33 @@ const HomeScreen = () => {
             </View>
         );
     }
+
+    const corkageFreeSection = () => {
+        const corkageFreeRestaurants = getRandomRestaurants(
+            restaurants.filter((restaurant: Restaurant) => restaurant.isCorkageFree), 
+            10
+        );
+
+        return (
+            <View style={styles.corkageFreeSection}>
+                <SectionHeader>콜키지 프리</SectionHeader>
+                <FlatList
+                    horizontal
+                    data={corkageFreeRestaurants}
+                    keyExtractor={(item, index) => index.toString()}
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.horizontalListContent}
+                    renderItem={({ item }) => (
+                        <RestaurantMiniCardView 
+                            restaurant={item} 
+                            onPress={(restaurant) => console.log(`${restaurant.name} 선택됨`)}
+                        />
+                    )}
+                />
+            </View>
+        );
+    }
+
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView 
@@ -96,6 +128,7 @@ const HomeScreen = () => {
                 {titleSection()}
                 {foodTypeSection()}
                 {popularRestaurantsSection()}
+                {corkageFreeSection()}
             </ScrollView>
         </SafeAreaView>
     );
@@ -194,6 +227,13 @@ const styles = StyleSheet.create({
     restaurantCategory: {
         fontSize: 14,
         color: '#666',
+    },
+    corkageFreeSection: {
+        paddingHorizontal: 16,
+        paddingTop: 4,
+        alignItems: 'flex-start',
+        width: '100%',
+        marginBottom: 20,
     },
 });
 

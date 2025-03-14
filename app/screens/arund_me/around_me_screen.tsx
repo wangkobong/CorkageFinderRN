@@ -6,12 +6,17 @@ import { WebView } from 'react-native-webview';
 import { KAKAO_JS_KEY } from '@env';
 import { useRestaurantStore } from '../../store/_restaurantStore';
 import SectionHeader from '@/app/components/section_header';
+import RestaurantMapCard from './subView/restaurant_map_card';
+import { RestaurantCard } from '../../models/restaurant';
+
 
 const AroundMeScreen = () => {
   const [location, setLocation] = useState({
     latitude: 37.566826,  // 서울 시청 기본값
     longitude: 126.9786567
   });
+
+  const [selectedRestaurant, setSelectedRestaurant] = useState<Partial<RestaurantCard> | null>(null);
 
   const restaurants = useRestaurantStore((state: any) => state.restaurants);
   
@@ -104,13 +109,16 @@ const AroundMeScreen = () => {
             try {
               const restaurantInfo = JSON.parse(event.nativeEvent.data);
               console.log('식당 정보:', restaurantInfo);
-              // 여기서 restaurantInfo를 사용하여 원하는 작업을 수행할 수 있습니다.
+              setSelectedRestaurant(restaurantInfo);
             } catch (error) {
               console.error('메시지 파싱 오류:', error);
             }
           }}
         />
       </View>
+      {selectedRestaurant && (
+        <RestaurantMapCard restaurant={selectedRestaurant} />
+      )}
     </SafeAreaView>
   );
 }

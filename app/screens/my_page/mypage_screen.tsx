@@ -3,6 +3,23 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';  
 import { TitleText } from '../../components/title_text';
 import { Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
+import { auth } from '../../_layout';
+
+import { useEffect } from 'react';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
+import { statusCodes } from '@react-native-google-signin/google-signin';
+import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '@env';
+
+// 인증 세션 완료 처리
+// WebBrowser.maybeCompleteAuthSession();
+
+GoogleSignin.configure({
+    webClientId: GOOGLE_WEB_CLIENT_ID, // 파이어베이스 콘솔에서 받은 웹 클라이언트 ID
+    iosClientId: GOOGLE_IOS_CLIENT_ID, // Google Cloud Console에서 받은 iOS 클라이언트 ID
+    // androidClientId: ANDROID_CLIENT_ID, // 필요 시 추가 (선택적)
+  });
 
 const MyPageScreen = () => {
     // 로그인 상태 (임시로 false로 설정)
@@ -25,19 +42,58 @@ const MyPageScreen = () => {
     );
 
     // 로그인 처리 함수 수정
-    const handleGoogleLogin = () => {
+    const handleGoogleLogin = async () => {
         console.log('구글로그인 시도');
-        // 실제 로그인 로직 구현 필요
-        // 로그인 성공 시 아래 코드 실행
-        // setIsLoggedIn(true);
-    };
+        console.log('클라이언트 ID 정보:');
+        console.log('웹 클라이언트 ID:', 'YOUR_WEB_CLIENT_ID');
+        console.log('iOS 클라이언트 ID:', 'YOUR_IOS_CLIENT_ID');
+        // console.log('Android 클라이언트 ID:', 'YOUR_ANDROID_CLIENT_ID');
+      
+        try {
+          // Google Play 서비스 확인 (Android에서 필요)
+          await GoogleSignin.hasPlayServices();
+      
+          // Google 로그인 요청
+          const userInfo = await GoogleSignin.signIn();
+          console.log('구글 로그인 성공, 사용자 정보:', userInfo);
+      
+          // ID 토큰 가져오기
+          const idToken = userInfo.data?.idToken
+          if (!idToken) {
+            throw new Error('ID 토큰을 가져올 수 없습니다.');
+          }
+      
+          // 파이어베이스 인증 크리덴셜 생성
+          const googleCredential = GoogleAuthProvider.credential(idToken);
+      
+          // 파이어베이스로 로그인
+          const userCredential = await signInWithCredential(auth, googleCredential);
+          console.log('파이어베이스 로그인 성공:', userCredential.user);
+      
+          // 여기서 필요한 후속 작업 (예: 사용자 정보 저장, 화면 전환 등)
+        } catch (error) {
+          console.error('구글 로그인 중 오류:', error);
+          if (error && typeof error === 'object' && 'code' in error) {
+            if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+              console.log('사용자가 로그인을 취소했습니다.');
+            } else if (error.code === statusCodes.IN_PROGRESS) {
+              console.log('로그인 진행 중입니다.');
+            } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+              console.log('Google Play 서비스를 사용할 수 없습니다.');
+            } else {
+              // message 속성 존재 여부 확인
+              const errorMessage = 'message' in error ? error.message : '상세 정보 없음';
+              console.log('알 수 없는 오류:', errorMessage);
+            }
+          } else {
+            console.log('알 수 없는 오류 형식:', error);
+          }
+        }
+      };
 
-    const handleAppleLogin = () => {
+      const handleAppleLogin = async () => {
         console.log('애플로그인 시도');
-        // 실제 로그인 로직 구현 필요
-        // 로그인 성공 시 아래 코드 실행
-        // setIsLoggedIn(true);
-    };
+      };
 
     // 로그인 화면 렌더링
     const renderLoginScreen = () => (

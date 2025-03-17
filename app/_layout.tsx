@@ -13,12 +13,17 @@ import { getFirestore, collection, getDocs } from 'firebase/firestore';
 import { useColorScheme } from '@/hooks/useColorScheme';
 // Zustand 스토어 import
 import { useRestaurantStore } from './store/_restaurantStore';
+// Auth 관련 import 수정
+import { initializeAuth, onAuthStateChanged } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Firebase 초기화
 const app = initializeApp(firebaseConfig);
 
-// Firebase 서비스 초기화
-// export const auth = getAuth(app);
+// Firebase 서비스 초기화 - Auth 부분 수정
+export const auth = initializeAuth(app, {
+  // persistence: getReactNativePersistence(AsyncStorage)
+});
 export const db = getFirestore(app);
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.

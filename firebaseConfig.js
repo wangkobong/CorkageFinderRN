@@ -8,7 +8,10 @@ import {
   STORAGE_BUCKET, 
   MESSAGING_SENDER_ID, 
   APP_ID, 
-  MEASUREMENT_ID 
+  MEASUREMENT_ID,
+  GOOGLE_WEB_CLIENT_ID,
+  GOOGLE_IOS_CLIENT_ID,
+  GOOGLE_ANDROID_CLIENT_ID
 } from "@env";
 
 // TODO: Add SDKs for Firebase products that you want to use

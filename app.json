@@ -6,17 +6,23 @@
     "entryPoint": "./index.js",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "corkageFinder",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "package": "io.tuist.CorkageFinder",
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "bundleIdentifier": "com.sungyeon.corkagefinder"
     },
     "android": {
+      "package": "com.sungyeon.corkagefinder",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "googleServicesFile": "./google-services.json",
+      "permissions": []
     },
     "web": {
       "bundler": "metro",
@@ -33,10 +39,24 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.sct4eocchhnf767fhdoulihne45lp2s3"
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "ee905714-a270-40e9-a723-ec275c286a31"
+      }
     }
   }
 }

@@ -86,9 +86,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.wangkobong.corkagefinder'
+    namespace 'com.sungyeon.corkagefinder'
     defaultConfig {
-        applicationId 'com.wangkobong.corkagefinder'
+        applicationId 'com.sungyeon.corkagefinder'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -174,3 +174,5 @@ dependencies {
         implementation jscFlavor
     }
 }
+
+apply plugin: 'com.google.gms.google-services'

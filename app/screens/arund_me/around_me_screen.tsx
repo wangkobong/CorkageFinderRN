@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TitleText } from '../../components/title_text';
 import { WebView } from 'react-native-webview';
-import { KAKAO_JS_KEY } from '@env';
 import { useRestaurantStore } from '../../store/_restaurantStore';
 import SectionHeader from '@/app/components/section_header';
 import RestaurantMapCard from './subView/restaurant_map_card';
@@ -31,7 +30,7 @@ const AroundMeScreen = () => {
     <head>
       <meta charset="utf-8"/>
       <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
-      <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&libraries=services"></script>
+      <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.EXPO_PUBLIC_KAKAO_JS_KEY}&libraries=services"></script>
       <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; }
         #map { width: 100%; height: 100%; }

@@ -10,15 +10,13 @@ import { useEffect } from 'react';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
 import { statusCodes } from '@react-native-google-signin/google-signin';
-import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '@env';
 
 // 인증 세션 완료 처리
 // WebBrowser.maybeCompleteAuthSession();
 
 GoogleSignin.configure({
-    webClientId: GOOGLE_WEB_CLIENT_ID, // 파이어베이스 콘솔에서 받은 웹 클라이언트 ID
-    iosClientId: GOOGLE_IOS_CLIENT_ID, // Google Cloud Console에서 받은 iOS 클라이언트 ID
-    // androidClientId: ANDROID_CLIENT_ID, // 필요 시 추가 (선택적)
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID, // 파이어베이스 콘솔에서 받은 웹 클라이언트 ID
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID, // Google Cloud Console에서 받은 iOS 클라이언트 ID
   });
 
 const MyPageScreen = () => {
@@ -45,8 +43,8 @@ const MyPageScreen = () => {
     const handleGoogleLogin = async () => {
         console.log('구글로그인 시도');
         console.log('클라이언트 ID 정보:');
-        console.log('웹 클라이언트 ID:', 'YOUR_WEB_CLIENT_ID');
-        console.log('iOS 클라이언트 ID:', 'YOUR_IOS_CLIENT_ID');
+        console.log('웹 클라이언트 ID:', process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID);
+        console.log('iOS 클라이언트 ID:', process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID);
         // console.log('Android 클라이언트 ID:', 'YOUR_ANDROID_CLIENT_ID');
       
         try {
@@ -84,6 +82,8 @@ const MyPageScreen = () => {
               // message 속성 존재 여부 확인
               const errorMessage = 'message' in error ? error.message : '상세 정보 없음';
               console.log('알 수 없는 오류:', errorMessage);
+              console.log(error.code);
+
             }
           } else {
             console.log('알 수 없는 오류 형식:', error);

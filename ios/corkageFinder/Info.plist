@@ -7,7 +7,7 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>CFBundleDisplayName</key>
-    <string>corkageFinder</string>
+    <string>corkagefinder</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -27,20 +27,14 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>corkageFinder</string>
+          <string>corkagefinder</string>
           <string>com.sungyeon.corkagefinder</string>
         </array>
       </dict>
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>com.googleusercontent.apps.1032395190345-sct4eocchhnf767fhdoulihne45lp2s3</string>
-        </array>
-      </dict>
-      <dict>
-        <key>CFBundleURLSchemes</key>
-        <array>
-          <string>com.googleusercontent.apps.sct4eocchhnf767fhdoulihne45lp2s3</string>
+          <string>com.googleusercontent.apps.1032395190345-koh5oe1naielog6j8sojhgs23k32bi9c</string>
         </array>
       </dict>
     </array>

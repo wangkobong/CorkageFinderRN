@@ -1,4 +1,4 @@
-package com.sungyeon.corkagefinder
+package com.sungyeonkim.corkageFinder
 
 import android.app.Application
 import android.content.res.Configuration

@@ -10,12 +10,14 @@ import {
   Switch,
   Image,
   Platform,
-  TouchableWithoutFeedback
+  TouchableWithoutFeedback,
+  Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TitleText } from '../../components/title_text';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import KakaoApiManager from '../../services/KakaoApiManager';
+import * as ImagePicker from 'expo-image-picker';
 
 // 섹션 헤더 컴포넌트
 const SectionHeader = ({ title }: { title: string }) => (
@@ -46,6 +48,8 @@ const RegisterScreen = () => {
     const [showTimePicker, setShowTimePicker] = useState(false);
     const [isSettingOpenTime, setIsSettingOpenTime] = useState(true);
     const [date, setDate] = useState(new Date());
+    // 이미지 관련 상태
+    const [image, setImage] = useState<string | null>(null);
 
     // KakaoApiManager 인스턴스 생성
     const kakaoApiManager = new KakaoApiManager();
@@ -139,6 +143,29 @@ const RegisterScreen = () => {
         setShowTimePicker(false);
     };
 
+    // 이미지 픽커 실행 함수
+    const pickImage = async () => {
+        // 미디어 라이브러리 권한 요청
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        
+        if (status !== 'granted') {
+            Alert.alert('알림', '앨범 접근 권한이 필요합니다.');
+            return;
+        }
+        
+        // 이미지 픽커 실행
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+        
+        if (!result.canceled) {
+            setImage(result.assets[0].uri);
+        }
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
@@ -149,10 +176,19 @@ const RegisterScreen = () => {
                 <View style={styles.sectionContent}>
                     {/* 이미지 업로드 영역 */}
                     <View style={styles.imageUploadContainer}>
-                        <View style={styles.imagePlaceholder}>
-                            <Text style={styles.imagePlaceholderText}>+</Text>
-                            <Text style={styles.imageText}>이미지 추가</Text>
-                        </View>
+                        <TouchableOpacity style={styles.imagePlaceholder} onPress={pickImage}>
+                            {image ? (
+                                <Image 
+                                    source={{ uri: image }} 
+                                    style={styles.selectedImage}
+                                />
+                            ) : (
+                                <>
+                                    <Text style={styles.imagePlaceholderText}>+</Text>
+                                    <Text style={styles.imageText}>이미지 추가</Text>
+                                </>
+                            )}
+                        </TouchableOpacity>
                     </View>
                     
                     {/* 레스토랑 이름 */}
@@ -618,6 +654,11 @@ const styles = StyleSheet.create({
         color: '#666',
         marginTop: 6,
         marginLeft: 4,
+    },
+    selectedImage: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 10,
     },
 });
 

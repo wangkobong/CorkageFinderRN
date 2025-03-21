@@ -3,26 +3,11 @@
     "name": "corkagefinder",
     "slug": "corkageFinder",
     "version": "1.0.0",
-    "entryPoint": "./index.tsx",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "corkagefinder",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true,
-      "googleServicesFile": "./GoogleService-Info.plist",
-      "bundleIdentifier": "com.sungyeon.corkagefinder",
-      "appleTeamId": "YWSA3TX7T7"
-    },
-    "android": {
-      "package": "com.sungyeon.corkagefinder",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "permissions": []
-    },
     "web": {
       "bundler": "metro",
       "output": "static",
@@ -44,6 +29,12 @@
         {
           "iosUrlScheme": "com.googleusercontent.apps.1032395190345-koh5oe1naielog6j8sojhgs23k32bi9c"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your friends."
+        }
       ]
     ],
     "experiments": {
@@ -56,6 +47,15 @@
       "eas": {
         "projectId": "ee905714-a270-40e9-a723-ec275c286a31"
       }
+    },
+    "ios": {
+      "bundleIdentifier": "com.sungyeonkim.corkageFinder"
+    },
+    "android": {
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.sungyeonkim.corkageFinder"
     }
   }
 }

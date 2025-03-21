@@ -1,4 +1,4 @@
-package com.sungyeon.corkagefinder
+package com.sungyeonkim.corkageFinder
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

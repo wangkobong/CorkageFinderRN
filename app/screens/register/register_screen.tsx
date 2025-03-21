@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TitleText } from '../../components/title_text';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import KakaoApiManager from '../../services/KakaoApiManager';
 
 // 섹션 헤더 컴포넌트
 const SectionHeader = ({ title }: { title: string }) => (
@@ -31,6 +32,8 @@ const RegisterScreen = () => {
     const [corkageFee, setCorkageFee] = useState('');
     const [corkageMemo, setCorkageMemo] = useState('');
     const [location, setLocation] = useState('');
+    const [detailAddress, setDetailAddress] = useState('');
+    const [isAddressVerified, setIsAddressVerified] = useState(false);
     const [phoneNumber, setPhoneNumber] = useState('');
     const [businessHours, setBusinessHours] = useState('');
     const [closedDays, setClosedDays] = useState('');
@@ -43,6 +46,46 @@ const RegisterScreen = () => {
     const [showTimePicker, setShowTimePicker] = useState(false);
     const [isSettingOpenTime, setIsSettingOpenTime] = useState(true);
     const [date, setDate] = useState(new Date());
+
+    // KakaoApiManager 인스턴스 생성
+    const kakaoApiManager = new KakaoApiManager();
+
+    const tryGeocoding = async (address: string) => {
+
+        if (!address || address.trim() === '') {
+            console.log('주소가 비어있습니다');
+            return;
+        }
+        
+        try {
+            console.log('KakaoApiManager 호출 시작');
+            const geocodingResponse = await kakaoApiManager.searchAddress(address);
+            console.log('지오코딩 응답:', geocodingResponse);
+            
+            // 응답 데이터가 있고, 최소 하나의 결과가 있는지 확인
+            if (geocodingResponse.documents && geocodingResponse.documents.length > 0) {
+                const x = geocodingResponse.documents[0].x;
+                const y = geocodingResponse.documents[0].y;
+                console.log('x:', x);
+                console.log('y:', y);
+                
+                // 주소 확인이 성공했으므로 상태 설정
+                setIsAddressVerified(true);
+                
+                // 기본 주소를 검색 결과로 업데이트 (필요한 경우)
+                const fullAddress = geocodingResponse.documents[0].address_name;
+                if (fullAddress) {
+                    setLocation(fullAddress);
+                }
+            } else {
+                console.log('주소 검색 결과가 없습니다');
+                setIsAddressVerified(false);
+            }
+        } catch (error) {
+            console.error('지오코딩 오류:', error);
+            setIsAddressVerified(false);
+        }
+    }
 
     // 시간 선택기를 보여주는 함수
     const showTimePickerModal = (isOpen: boolean) => {
@@ -190,15 +233,51 @@ const RegisterScreen = () => {
                         <TextInput
                             style={styles.input}
                             value={location}
-                            onChangeText={setLocation}
+                            onChangeText={(text) => {
+                                setLocation(text);
+                                // 주소가 변경되면 검증 상태 초기화
+                                if (isAddressVerified) {
+                                    setIsAddressVerified(false);
+                                }
+                            }}
                             placeholder="주소"
                             placeholderTextColor="#888"
                         />
                     </View>
                     
+                    {/* 상세 주소 입력 필드 - 주소 검증이 성공했을 때만 표시 */}
+                    {isAddressVerified && (
+                        <View style={styles.inputContainer}>
+                            <TextInput
+                                style={styles.input}
+                                value={detailAddress}
+                                onChangeText={setDetailAddress}
+                                placeholder="상세 주소"
+                                placeholderTextColor="#888"
+                            />
+                            {detailAddress.trim() !== '' && (
+                                <Text style={styles.fullAddressText}>
+                                    {location} {detailAddress}
+                                </Text>
+                            )}
+                        </View>
+                    )}
+                    
                     {/* 주소 검색 버튼 */}
-                    <TouchableOpacity style={styles.addressSearchButton}>
-                        <Text style={styles.addressSearchButtonText}>주소 검색</Text>
+                    <TouchableOpacity 
+                        style={[
+                            styles.addressSearchButton, 
+                            !location.trim() && styles.addressSearchButtonDisabled
+                        ]} 
+                        disabled={!location.trim()}
+                        onPress={() => {
+                            console.log('주소 검색 버튼 클릭, 현재 location 값:', location);
+                            tryGeocoding(location);
+                        }}>
+                        <Text style={[
+                            styles.addressSearchButtonText,
+                            !location.trim() && styles.addressSearchButtonTextDisabled
+                        ]}>주소 검색</Text>
                     </TouchableOpacity>
                 </View>
                 
@@ -417,10 +496,16 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         alignItems: 'center',
     },
+    addressSearchButtonDisabled: {
+        backgroundColor: '#cccccc',
+    },
     addressSearchButtonText: {
         color: 'white',
         fontSize: 16,
         fontWeight: '600',
+    },
+    addressSearchButtonTextDisabled: {
+        color: '#999999',
     },
     timeLabel: {
         fontSize: 14,
@@ -524,6 +609,15 @@ const styles = StyleSheet.create({
     timePickerConfirmText: {
         fontSize: 16,
         color: '#4A6FE7',
+    },
+    detailAddressContainer: {
+        marginTop: 10,
+    },
+    fullAddressText: {
+        fontSize: 12,
+        color: '#666',
+        marginTop: 6,
+        marginLeft: 4,
     },
 });
 

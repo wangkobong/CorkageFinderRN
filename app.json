@@ -12,7 +12,8 @@
     "ios": {
       "supportsTablet": true,
       "googleServicesFile": "./GoogleService-Info.plist",
-      "bundleIdentifier": "com.sungyeon.corkagefinder"
+      "bundleIdentifier": "com.sungyeon.corkagefinder",
+      "appleTeamId": "YWSA3TX7T7"
     },
     "android": {
       "package": "com.sungyeon.corkagefinder",

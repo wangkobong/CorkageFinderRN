@@ -11,13 +11,19 @@ import {
   Image,
   Platform,
   TouchableWithoutFeedback,
-  Alert
+  Alert,
+  ActivityIndicator,
+  Modal
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TitleText } from '../../components/title_text';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import KakaoApiManager from '../../services/KakaoApiManager';
 import * as ImagePicker from 'expo-image-picker';
+import { RestaurantRegisterService } from '../../services/RestaurantRegisterService';
+import { HomeRestaurantCategory } from '../../models/restaurant_category';
+import { GeocodingResponse } from '../../models/geocoding';
+import { Ionicons } from '@expo/vector-icons';
 
 // 섹션 헤더 컴포넌트
 const SectionHeader = ({ title }: { title: string }) => (
@@ -51,9 +57,34 @@ const RegisterScreen = () => {
     // 이미지 관련 상태
     const [images, setImages] = useState<string[]>([]);
     const MAX_IMAGES = 5;
+    // 로딩 상태
+    const [isLoading, setIsLoading] = useState(false);
+    // 지오코딩 응답 저장
+    const [geocodingResponse, setGeocodingResponse] = useState<GeocodingResponse | null>(null);
+    // 카테고리 모달 표시 상태
+    const [showCategoryModal, setShowCategoryModal] = useState(false);
+    // 선택된 카테고리 ID (enum)
+    const [selectedCategoryId, setSelectedCategoryId] = useState<HomeRestaurantCategory | null>(null);
 
     // KakaoApiManager 인스턴스 생성
     const kakaoApiManager = new KakaoApiManager();
+
+    // 카테고리 목록
+    const categories = [
+        { id: HomeRestaurantCategory.KOREAN, title: '한식', emoji: '🥘' },
+        { id: HomeRestaurantCategory.JAPANESE, title: '일식', emoji: '🍣' },
+        { id: HomeRestaurantCategory.CHINESE, title: '중식', emoji: '🥟' },
+        { id: HomeRestaurantCategory.WESTERN, title: '양식', emoji: '🍝' },
+        { id: HomeRestaurantCategory.ASIAN, title: '아시안', emoji: '🍜' },
+        { id: HomeRestaurantCategory.ETC, title: '기타', emoji: '🥡' },
+    ];
+
+    // 카테고리 선택 함수
+    const selectCategory = (categoryTitle: string, categoryId: HomeRestaurantCategory) => {
+        setCategory(categoryTitle);
+        setSelectedCategoryId(categoryId);
+        setShowCategoryModal(false);
+    };
 
     const tryGeocoding = async (address: string) => {
 
@@ -64,13 +95,16 @@ const RegisterScreen = () => {
         
         try {
             console.log('KakaoApiManager 호출 시작');
-            const geocodingResponse = await kakaoApiManager.searchAddress(address);
-            console.log('지오코딩 응답:', geocodingResponse);
+            const response = await kakaoApiManager.searchAddress(address);
+            console.log('지오코딩 응답:', response);
+            
+            // 응답 데이터 저장 (나중에 좌표로 사용하기 위해)
+            setGeocodingResponse(response);
             
             // 응답 데이터가 있고, 최소 하나의 결과가 있는지 확인
-            if (geocodingResponse.documents && geocodingResponse.documents.length > 0) {
-                const x = geocodingResponse.documents[0].x;
-                const y = geocodingResponse.documents[0].y;
+            if (response.documents && response.documents.length > 0) {
+                const x = response.documents[0].x;
+                const y = response.documents[0].y;
                 console.log('x:', x);
                 console.log('y:', y);
                 
@@ -78,7 +112,7 @@ const RegisterScreen = () => {
                 setIsAddressVerified(true);
                 
                 // 기본 주소를 검색 결과로 업데이트 (필요한 경우)
-                const fullAddress = geocodingResponse.documents[0].address_name;
+                const fullAddress = response.documents[0].address_name;
                 if (fullAddress) {
                     setLocation(fullAddress);
                 }
@@ -179,6 +213,133 @@ const RegisterScreen = () => {
         setImages(newImages);
     };
 
+    // 카테고리 문자열을 enum으로 변환하는 함수 (수정)
+    const getCategoryEnum = (): HomeRestaurantCategory => {
+        // selectedCategoryId가 있으면 그대로 반환
+        if (selectedCategoryId) {
+            return selectedCategoryId;
+        }
+        
+        // 없으면 텍스트로 매핑 (기존 로직 유지)
+        switch (category.trim().toLowerCase()) {
+            case '한식': return HomeRestaurantCategory.KOREAN;
+            case '일식': return HomeRestaurantCategory.JAPANESE;
+            case '중식': return HomeRestaurantCategory.CHINESE;
+            case '양식': return HomeRestaurantCategory.WESTERN;
+            case '아시안': return HomeRestaurantCategory.ASIAN;
+            default: return HomeRestaurantCategory.ETC;
+        }
+    };
+
+    // 저장 버튼 클릭 시 호출되는 함수 (수정)
+    const handleSave = async () => {
+        try {
+            // 필수 입력값 검증
+            if (!restaurantName || !location || !isAddressVerified || !category) {
+                Alert.alert('입력 오류', '필수 정보를 모두 입력해주세요.');
+                return;
+            }
+            
+            // 로딩 상태 시작
+            setIsLoading(true);
+            
+            // 1. 이미지 업로드
+            let imageURLs: string[] = [];
+            if (images.length > 0) {
+                try {
+                    // 이미지 객체 배열을 RestaurantRegisterService에 전달
+                    const imageObjects = images.map(uri => ({ uri }));
+                    imageURLs = await RestaurantRegisterService.uploadImages(imageObjects);
+                } catch (error) {
+                    console.error('이미지 업로드 실패:', error);
+                    Alert.alert('오류', '이미지 업로드 중 문제가 발생했습니다.');
+                    setIsLoading(false);
+                    return;
+                }
+            }
+            
+            // 2. 영업시간 문자열 생성
+            const businessHoursStr = `${openTime}~${closeTime}`;
+            
+            // 3. geocodingResponse에서 위도, 경도 정보 추출 (주소 검증 시 저장했던 값)
+            let latitude = 0;
+            let longitude = 0;
+            let sido = '';
+            let sigungu = '';
+            
+            if (geocodingResponse && geocodingResponse.documents.length > 0) {
+                const document = geocodingResponse.documents[0];
+                latitude = parseFloat(document.y);
+                longitude = parseFloat(document.x);
+                
+                // 주소 정보에서 시/도, 시/군/구 정보 추출
+                if (document.address) {
+                    sido = document.address.region_1depth_name || '';
+                    sigungu = document.address.region_2depth_name || '';
+                }
+            }
+            
+            // 4. 레스토랑 데이터 객체 생성 (수정)
+            const categoryEnum = getCategoryEnum();
+            const restaurantData = {
+                imageURLs,
+                name: restaurantName,
+                category: categoryEnum,
+                isCorkageFree,
+                corkageFee: isCorkageFree ? '' : corkageFee,
+                sido,
+                sigungu,
+                phoneNumber,
+                address: location,
+                addressDetail: detailAddress,
+                businessHours: businessHoursStr,
+                closedDays,
+                corkageNote: corkageMemo,
+                latitude,
+                longitude,
+                isBreaktime: isBreakTimeEnabled,
+                breaktime: isBreakTimeEnabled ? breakTime : ''
+            };
+            
+            // 5. Firestore에 레스토랑 데이터 저장
+            await RestaurantRegisterService.addRestaurant(restaurantData);
+            
+            // 성공 처리
+            setIsLoading(false);
+            Alert.alert(
+                '등록 완료', 
+                '레스토랑 정보가 등록되었습니다. 검토 후 승인될 예정입니다.', 
+                [
+                    { 
+                        text: '확인', 
+                        onPress: () => {
+                            // 폼 초기화
+                            setRestaurantName('');
+                            setCategory('');
+                            setIsCorkageFree(false);
+                            setCorkageFee('');
+                            setCorkageMemo('');
+                            setLocation('');
+                            setDetailAddress('');
+                            setIsAddressVerified(false);
+                            setPhoneNumber('');
+                            setClosedDays('');
+                            setBreakTime('');
+                            setIsBreakTimeEnabled(false);
+                            setImages([]);
+                            setGeocodingResponse(null);
+                        } 
+                    }
+                ]
+            );
+            
+        } catch (error) {
+            setIsLoading(false);
+            console.error('레스토랑 등록 실패:', error);
+            Alert.alert('오류', '레스토랑 등록 중 문제가 발생했습니다.');
+        }
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
@@ -231,15 +392,18 @@ const RegisterScreen = () => {
                         />
                     </View>
                     
-                    {/* 카테고리 */}
+                    {/* 카테고리 (수정) */}
                     <View style={styles.inputContainer}>
-                        <TextInput
-                            style={styles.input}
-                            value={category}
-                            onChangeText={setCategory}
-                            placeholder="카테고리"
-                            placeholderTextColor="#888"
-                        />
+                        <Text style={styles.inputLabel}>카테고리</Text>
+                        <TouchableOpacity 
+                            style={styles.categorySelector}
+                            onPress={() => setShowCategoryModal(true)}
+                        >
+                            <Text style={category ? styles.categorySelectedText : styles.placeholderText}>
+                                {category ? `${categories.find(c => c.title === category)?.emoji || ''} ${category}` : '카테고리 선택'}
+                            </Text>
+                            <Ionicons name="chevron-down" size={20} color="#888" />
+                        </TouchableOpacity>
                     </View>
                 </View>
                 
@@ -418,8 +582,16 @@ const RegisterScreen = () => {
                 </View>
                 
                 {/* 저장 버튼 */}
-                <TouchableOpacity style={styles.saveButton}>
-                    <Text style={styles.saveButtonText}>저장하기</Text>
+                <TouchableOpacity 
+                    style={styles.saveButton} 
+                    onPress={handleSave}
+                    disabled={isLoading}
+                >
+                    {isLoading ? (
+                        <ActivityIndicator color="#ffffff" />
+                    ) : (
+                        <Text style={styles.saveButtonText}>저장하기</Text>
+                    )}
                 </TouchableOpacity>
             </ScrollView>
             
@@ -461,6 +633,41 @@ const RegisterScreen = () => {
                     />
                 )
             )}
+
+            {/* 카테고리 선택 모달 */}
+            <Modal
+                visible={showCategoryModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowCategoryModal(false)}
+            >
+                <TouchableWithoutFeedback onPress={() => setShowCategoryModal(false)}>
+                    <View style={styles.modalOverlay}>
+                        <TouchableWithoutFeedback>
+                            <View style={styles.modalContent}>
+                                <Text style={styles.modalTitle}>카테고리 선택</Text>
+                                {categories.map((cat) => (
+                                    <TouchableOpacity
+                                        key={cat.id}
+                                        style={styles.categoryOption}
+                                        onPress={() => selectCategory(cat.title, cat.id)}
+                                    >
+                                        <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
+                                        <Text style={styles.categoryOptionText}>{cat.title}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                                
+                                <TouchableOpacity 
+                                    style={styles.closeButton}
+                                    onPress={() => setShowCategoryModal(false)}
+                                >
+                                    <Text style={styles.closeButtonText}>닫기</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
         </SafeAreaView>
     );
 };
@@ -657,10 +864,18 @@ const styles = StyleSheet.create({
         padding: 20,
         alignItems: 'center',
     },
+    modalContent: {
+        width: '80%',
+        backgroundColor: 'white',
+        borderRadius: 10,
+        padding: 20,
+        alignItems: 'stretch',
+    },
     modalTitle: {
         fontSize: 18,
         fontWeight: '600',
-        marginBottom: 20,
+        marginBottom: 15,
+        textAlign: 'center',
     },
     buttonContainer: {
         flexDirection: 'row',
@@ -729,6 +944,61 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
         borderRadius: 10,
+    },
+    // 카테고리 선택기 스타일
+    categorySelector: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderBottomWidth: 1,
+        borderColor: '#ddd',
+        padding: 12,
+        backgroundColor: '#fff',
+    },
+    placeholderText: {
+        color: '#888',
+        fontSize: 16,
+    },
+    categorySelectedText: {
+        color: '#000',
+        fontSize: 16,
+    },
+    inputLabel: {
+        fontSize: 14,
+        color: '#777',
+        marginBottom: 8,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    categoryOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+    },
+    categoryEmoji: {
+        fontSize: 20,
+        marginRight: 10,
+    },
+    categoryOptionText: {
+        fontSize: 16,
+    },
+    closeButton: {
+        marginTop: 15,
+        backgroundColor: '#4A6FE7',
+        padding: 12,
+        borderRadius: 5,
+        alignItems: 'center',
+    },
+    closeButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '600',
     },
 });
 

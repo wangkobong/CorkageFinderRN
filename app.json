@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "corkagefinder",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "web": {
       "bundler": "metro",
       "output": "static",
@@ -23,18 +22,6 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ],
-      [
-        "@react-native-google-signin/google-signin",
-        {
-          "iosUrlScheme": "com.googleusercontent.apps.1032395190345-koh5oe1naielog6j8sojhgs23k32bi9c"
-        }
-      ],
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "The app accesses your photos to let you share them with your friends."
-        }
       ]
     ],
     "experiments": {
@@ -48,14 +35,12 @@
         "projectId": "ee905714-a270-40e9-a723-ec275c286a31"
       }
     },
-    "ios": {
-      "bundleIdentifier": "com.sungyeonkim.corkageFinder"
-    },
     "android": {
-      "permissions": [
-        "android.permission.RECORD_AUDIO"
-      ],
-      "package": "com.sungyeonkim.corkageFinder"
+      "package": "com.sungyeon.corkagefinder"
+    },
+    "ios": {
+      "bundleIdentifier": "com.sungyeon.corkagefinder",
+      "appleTeamId": "YWSA3TX7T7"
     }
   }
 }

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -66,6 +66,14 @@ const RegisterScreen = () => {
     // 선택된 카테고리 ID (enum)
     const [selectedCategoryId, setSelectedCategoryId] = useState<HomeRestaurantCategory | null>(null);
 
+    // 휴무일 모달 표시 상태
+    const [showClosedDaysModal, setShowClosedDaysModal] = useState(false);
+    // 선택된 휴무일 배열
+    const [selectedClosedDays, setSelectedClosedDays] = useState<string[]>([]);
+
+    // 저장 버튼 활성화 상태
+    const [isSaveButtonEnabled, setIsSaveButtonEnabled] = useState(false);
+
     // KakaoApiManager 인스턴스 생성
     const kakaoApiManager = new KakaoApiManager();
 
@@ -79,12 +87,58 @@ const RegisterScreen = () => {
         { id: HomeRestaurantCategory.ETC, title: '기타', emoji: '🥡' },
     ];
 
+    // 요일 목록
+    const weekdays = [
+        { id: 'monday', title: '월요일' },
+        { id: 'tuesday', title: '화요일' },
+        { id: 'wednesday', title: '수요일' },
+        { id: 'thursday', title: '목요일' },
+        { id: 'friday', title: '금요일' },
+        { id: 'saturday', title: '토요일' },
+        { id: 'sunday', title: '일요일' },
+    ];
+
     // 카테고리 선택 함수
     const selectCategory = (categoryTitle: string, categoryId: HomeRestaurantCategory) => {
         setCategory(categoryTitle);
         setSelectedCategoryId(categoryId);
         setShowCategoryModal(false);
     };
+
+    // 휴무일 선택 상태 토글 함수
+    const toggleClosedDay = (day: string) => {
+        if (selectedClosedDays.includes(day)) {
+            // 이미 선택된 경우 제거
+            setSelectedClosedDays(selectedClosedDays.filter(d => d !== day));
+        } else {
+            // 선택되지 않은 경우 추가
+            setSelectedClosedDays([...selectedClosedDays, day]);
+        }
+    };
+
+    // 휴무일 선택 완료
+    const confirmClosedDays = () => {
+        // 선택된 휴무일을 문자열로 변환
+        const closedDaysString = selectedClosedDays
+            .map(id => weekdays.find(day => day.id === id)?.title || '')
+            .filter(Boolean)
+            .join(', ');
+        
+        setClosedDays(closedDaysString);
+        setShowClosedDaysModal(false);
+    };
+
+    // 컴포넌트 마운트 시 이미 설정된 휴무일이 있다면 선택 상태 초기화
+    useEffect(() => {
+        if (closedDays) {
+            const dayTitles = closedDays.split(', ');
+            const dayIds = dayTitles
+                .map(title => weekdays.find(day => day.title === title)?.id)
+                .filter(Boolean) as string[];
+            
+            setSelectedClosedDays(dayIds);
+        }
+    }, []);
 
     const tryGeocoding = async (address: string) => {
 
@@ -231,17 +285,94 @@ const RegisterScreen = () => {
         }
     };
 
+    // 필수 입력 요소 유효성 검사
+    useEffect(() => {
+        // 이름, 카테고리, 주소 검증, 전화번호, 영업시간 체크
+        const isNameValid = restaurantName.trim() !== '';
+        const isCategoryValid = category.trim() !== '';
+        const isAddressValid = location.trim() !== '' && isAddressVerified;
+        const isPhoneValid = phoneNumber.trim() !== '';
+        const isTimeValid = openTime !== '' && closeTime !== '';
+        
+        // 콜키지 정보 체크 (무료면 비용 필요 없음)
+        const isCorkageValid = isCorkageFree || (!isCorkageFree && corkageFee.trim() !== '');
+        
+        // 모든 조건이 충족되면 버튼 활성화
+        const isFormValid = isNameValid && isCategoryValid && isAddressValid && 
+                           isPhoneValid && isTimeValid && isCorkageValid;
+        
+        setIsSaveButtonEnabled(isFormValid);
+    }, [restaurantName, category, location, isAddressVerified, phoneNumber, 
+        openTime, closeTime, isCorkageFree, corkageFee]);
+
+    // 콜키지 금액 포맷팅 함수 수정
+    const formatCorkageFee = (value: string) => {
+        // 빈 문자열이면 빈 문자열 반환
+        if (value === '') {
+            return '';
+        }
+        
+        // 숫자가 아닌 문자 제거
+        const numericValue = value.replace(/[^0-9]/g, '');
+        
+        // 숫자가 없으면 빈 문자열 반환
+        if (numericValue === '') {
+            return '';
+        }
+        
+        // 천 단위 콤마 추가 (원 표시 제거)
+        return numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    };
+    
+    // 콜키지 금액 입력 처리 함수 수정
+    const handleCorkageFeeChange = (value: string) => {
+        // 숫자와 쉼표만 남기고 제거
+        const numericValue = value.replace(/[^0-9,]/g, '').replace(/,/g, '');
+        setCorkageFee(numericValue);
+    };
+    
+    // 콜키지 금액 표시용 포맷팅된 값
+    const [formattedCorkageFee, setFormattedCorkageFee] = useState('');
+    
+    // 콜키지 금액이 변경될 때마다 포맷팅된 값 업데이트
+    useEffect(() => {
+        setFormattedCorkageFee(formatCorkageFee(corkageFee));
+    }, [corkageFee]);
+
+    // 폼 초기화 함수
+    const resetForm = () => {
+        setRestaurantName('');
+        setCategory('');
+        setSelectedCategoryId(null);
+        setIsCorkageFree(false);
+        setCorkageFee('');
+        setCorkageMemo('');
+        setLocation('');
+        setDetailAddress('');
+        setIsAddressVerified(false);
+        setPhoneNumber('');
+        setClosedDays('');
+        setSelectedClosedDays([]);
+        setBreakTime('');
+        setIsBreakTimeEnabled(false);
+        setImages([]);
+        setGeocodingResponse(null);
+    };
+
     // 저장 버튼 클릭 시 호출되는 함수 (수정)
     const handleSave = async () => {
         try {
+            // 버튼이 비활성화 상태이면 함수 실행하지 않음
+            if (!isSaveButtonEnabled) return;
+            
+            // 로딩 상태 시작
+            setIsLoading(true);
+            
             // 필수 입력값 검증
             if (!restaurantName || !location || !isAddressVerified || !category) {
                 Alert.alert('입력 오류', '필수 정보를 모두 입력해주세요.');
                 return;
             }
-            
-            // 로딩 상태 시작
-            setIsLoading(true);
             
             // 1. 이미지 업로드
             let imageURLs: string[] = [];
@@ -312,23 +443,7 @@ const RegisterScreen = () => {
                 [
                     { 
                         text: '확인', 
-                        onPress: () => {
-                            // 폼 초기화
-                            setRestaurantName('');
-                            setCategory('');
-                            setIsCorkageFree(false);
-                            setCorkageFee('');
-                            setCorkageMemo('');
-                            setLocation('');
-                            setDetailAddress('');
-                            setIsAddressVerified(false);
-                            setPhoneNumber('');
-                            setClosedDays('');
-                            setBreakTime('');
-                            setIsBreakTimeEnabled(false);
-                            setImages([]);
-                            setGeocodingResponse(null);
-                        } 
+                        onPress: resetForm
                     }
                 ]
             );
@@ -424,11 +539,12 @@ const RegisterScreen = () => {
                     {/* 콜키지 비용 - 콜키지가 무료가 아닐 때만 표시 */}
                     {!isCorkageFree && (
                         <View style={styles.inputContainer}>
+                            <Text style={styles.inputLabel}>콜키지 비용</Text>
                             <TextInput
                                 style={styles.input}
-                                value={corkageFee}
-                                onChangeText={setCorkageFee}
-                                placeholder="콜키지 비용"
+                                value={formattedCorkageFee}
+                                onChangeText={handleCorkageFeeChange}
+                                placeholder="병당 금액을 숫자로만 입력해주세요"
                                 keyboardType="numeric"
                                 placeholderTextColor="#888"
                             />
@@ -547,13 +663,16 @@ const RegisterScreen = () => {
                     
                     {/* 휴무일 */}
                     <View style={styles.inputContainer}>
-                        <TextInput
-                            style={styles.input}
-                            value={closedDays}
-                            onChangeText={setClosedDays}
-                            placeholder="휴무일"
-                            placeholderTextColor="#888"
-                        />
+                        <Text style={styles.inputLabel}>휴무일</Text>
+                        <TouchableOpacity 
+                            style={styles.daySelector}
+                            onPress={() => setShowClosedDaysModal(true)}
+                        >
+                            <Text style={closedDays ? styles.daySelectedText : styles.placeholderText}>
+                                {closedDays || '휴무일 선택'}
+                            </Text>
+                            <Ionicons name="chevron-down" size={20} color="#888" />
+                        </TouchableOpacity>
                     </View>
                     
                     {/* 브레이크타임 스위치 */}
@@ -583,9 +702,12 @@ const RegisterScreen = () => {
                 
                 {/* 저장 버튼 */}
                 <TouchableOpacity 
-                    style={styles.saveButton} 
+                    style={[
+                        styles.saveButton, 
+                        !isSaveButtonEnabled && styles.saveButtonDisabled
+                    ]} 
                     onPress={handleSave}
-                    disabled={isLoading}
+                    disabled={isLoading || !isSaveButtonEnabled}
                 >
                     {isLoading ? (
                         <ActivityIndicator color="#ffffff" />
@@ -663,6 +785,63 @@ const RegisterScreen = () => {
                                 >
                                     <Text style={styles.closeButtonText}>닫기</Text>
                                 </TouchableOpacity>
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
+
+            {/* 휴무일 선택 모달 */}
+            <Modal
+                visible={showClosedDaysModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowClosedDaysModal(false)}
+            >
+                <TouchableWithoutFeedback onPress={() => setShowClosedDaysModal(false)}>
+                    <View style={styles.modalOverlay}>
+                        <TouchableWithoutFeedback>
+                            <View style={styles.modalContent}>
+                                <Text style={styles.modalTitle}>휴무일 선택</Text>
+                                <Text style={styles.modalSubtitle}>복수 선택 가능합니다</Text>
+                                
+                                {weekdays.map((day) => (
+                                    <TouchableOpacity
+                                        key={day.id}
+                                        style={[
+                                            styles.dayOption,
+                                            selectedClosedDays.includes(day.id) && styles.dayOptionSelected
+                                        ]}
+                                        onPress={() => toggleClosedDay(day.id)}
+                                    >
+                                        <View style={styles.dayOptionContent}>
+                                            <Text style={[
+                                                styles.dayOptionText,
+                                                selectedClosedDays.includes(day.id) && styles.dayOptionTextSelected
+                                            ]}>
+                                                {day.title}
+                                            </Text>
+                                            {selectedClosedDays.includes(day.id) && (
+                                                <Ionicons name="checkmark" size={20} color="#4A6FE7" />
+                                            )}
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                                
+                                <View style={styles.modalButtonContainer}>
+                                    <TouchableOpacity 
+                                        style={[styles.modalButton, styles.cancelButton]}
+                                        onPress={() => setShowClosedDaysModal(false)}
+                                    >
+                                        <Text style={styles.cancelButtonText}>취소</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity 
+                                        style={[styles.modalButton, styles.confirmButton]}
+                                        onPress={confirmClosedDays}
+                                    >
+                                        <Text style={styles.confirmButtonText}>확인</Text>
+                                    </TouchableOpacity>
+                                </View>
                             </View>
                         </TouchableWithoutFeedback>
                     </View>
@@ -798,6 +977,9 @@ const styles = StyleSheet.create({
         marginTop: 24,
         marginBottom: 30,
     },
+    saveButtonDisabled: {
+        backgroundColor: '#cccccc',
+    },
     saveButtonText: {
         color: 'white',
         fontSize: 18,
@@ -883,18 +1065,25 @@ const styles = StyleSheet.create({
         width: '100%',
         marginTop: 20,
     },
+    modalButtonContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 20,
+    },
     modalButton: {
         padding: 12,
         borderRadius: 5,
         flex: 1,
         marginHorizontal: 5,
         alignItems: 'center',
+    },
+    cancelButton: {
         backgroundColor: '#f0f0f0',
     },
     confirmButton: {
         backgroundColor: '#4A6FE7',
     },
-    modalButtonText: {
+    cancelButtonText: {
         fontSize: 16,
         color: '#444',
     },
@@ -978,6 +1167,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 12,
+        paddingHorizontal: 12,
         borderBottomWidth: 1,
         borderBottomColor: '#eee',
     },
@@ -999,6 +1189,55 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 16,
         fontWeight: '600',
+    },
+    inputHelpText: {
+        fontSize: 12,
+        color: '#888',
+        marginTop: 4,
+        marginLeft: 4,
+    },
+    daySelector: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderBottomWidth: 1,
+        borderColor: '#ddd',
+        padding: 12,
+        backgroundColor: '#fff',
+    },
+    daySelectedText: {
+        color: '#000',
+        fontSize: 16,
+    },
+    modalSubtitle: {
+        fontSize: 14,
+        color: '#777',
+        marginBottom: 15,
+    },
+    dayOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+    },
+    dayOptionSelected: {
+        backgroundColor: '#f0f8ff',
+    },
+    dayOptionContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
+    },
+    dayOptionText: {
+        fontSize: 16,
+        color: '#444',
+    },
+    dayOptionTextSelected: {
+        color: '#4A6FE7',
+        fontWeight: '500',
     },
 });
 

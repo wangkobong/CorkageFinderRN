@@ -49,7 +49,8 @@ const RegisterScreen = () => {
     const [isSettingOpenTime, setIsSettingOpenTime] = useState(true);
     const [date, setDate] = useState(new Date());
     // 이미지 관련 상태
-    const [image, setImage] = useState<string | null>(null);
+    const [images, setImages] = useState<string[]>([]);
+    const MAX_IMAGES = 5;
 
     // KakaoApiManager 인스턴스 생성
     const kakaoApiManager = new KakaoApiManager();
@@ -145,6 +146,11 @@ const RegisterScreen = () => {
 
     // 이미지 픽커 실행 함수
     const pickImage = async () => {
+        if (images.length >= MAX_IMAGES) {
+            Alert.alert('알림', '최대 5개의 이미지까지 추가할 수 있습니다.');
+            return;
+        }
+
         // 미디어 라이브러리 권한 요청
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         
@@ -155,40 +161,63 @@ const RegisterScreen = () => {
         
         // 이미지 픽커 실행
         let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: 'images',
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.8,
         });
         
-        if (!result.canceled) {
-            setImage(result.assets[0].uri);
+        if (!result.canceled && result.assets.length > 0) {
+            setImages([...images, result.assets[0].uri]);
         }
+    };
+
+    // 이미지 삭제 함수
+    const removeImage = (index: number) => {
+        const newImages = [...images];
+        newImages.splice(index, 1);
+        setImages(newImages);
     };
 
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
-                <TitleText>레스토랑 등록</TitleText>
+                <TitleText>등록 요청</TitleText>
                 
                 {/* 기본 정보 섹션 */}
                 <SectionHeader title="기본 정보" />
                 <View style={styles.sectionContent}>
                     {/* 이미지 업로드 영역 */}
                     <View style={styles.imageUploadContainer}>
-                        <TouchableOpacity style={styles.imagePlaceholder} onPress={pickImage}>
-                            {image ? (
-                                <Image 
-                                    source={{ uri: image }} 
-                                    style={styles.selectedImage}
-                                />
-                            ) : (
-                                <>
-                                    <Text style={styles.imagePlaceholderText}>+</Text>
-                                    <Text style={styles.imageText}>이미지 추가</Text>
-                                </>
+                        <Text style={styles.imageSubtitle}>이미지 (최대 5장)</Text>
+                        <View style={styles.imageGalleryContainer}>
+                            {/* 이미지 추가 버튼 (5개 미만일 때만 표시) */}
+                            {images.length < MAX_IMAGES && (
+                                <TouchableOpacity 
+                                    style={styles.addMoreButton} 
+                                    onPress={pickImage}
+                                >
+                                    <Text style={styles.addMoreButtonText}>+</Text>
+                                    <Text style={styles.addMoreButtonSubtext}>추가</Text>
+                                </TouchableOpacity>
                             )}
-                        </TouchableOpacity>
+                            
+                            {/* 이미지 썸네일 목록 */}
+                            {images.map((uri, index) => (
+                                <View key={index} style={styles.thumbnailWrapper}>
+                                    <Image 
+                                        source={{ uri }} 
+                                        style={styles.thumbnail} 
+                                    />
+                                    <TouchableOpacity 
+                                        style={styles.removeThumbnailButton}
+                                        onPress={() => removeImage(index)}
+                                    >
+                                        <Text style={styles.removeThumbnailButtonText}>✕</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
+                        </View>
                     </View>
                     
                     {/* 레스토랑 이름 */}
@@ -470,27 +499,68 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     imageUploadContainer: {
-        alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 20,
     },
-    imagePlaceholder: {
-        width: 150,
-        height: 150,
-        borderRadius: 10,
-        backgroundColor: '#f0f0f0',
+    imageSubtitle: {
+        fontSize: 14,
+        color: '#666',
+        marginBottom: 10,
+        marginLeft: 2,
+    },
+    imageGalleryContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        marginBottom: 5,
+    },
+    thumbnailWrapper: {
+        position: 'relative',
+        margin: 4,
+    },
+    thumbnail: {
+        width: 80,
+        height: 80,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#ddd',
+    },
+    removeThumbnailButton: {
+        position: 'absolute',
+        top: -8,
+        right: -8,
+        backgroundColor: '#ff4d4d',
+        width: 22,
+        height: 22,
+        borderRadius: 11,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    removeThumbnailButtonText: {
+        color: 'white',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    addMoreButton: {
+        width: 80,
+        height: 80,
+        borderRadius: 8,
         borderWidth: 1,
         borderColor: '#ddd',
         borderStyle: 'dashed',
+        justifyContent: 'center',
+        alignItems: 'center',
+        margin: 4,
+        backgroundColor: '#f7f7f7',
     },
-    imagePlaceholderText: {
-        fontSize: 40,
-        color: '#999',
+    addMoreButtonText: {
+        fontSize: 30,
+        color: '#888',
+        fontWeight: '300',
     },
-    imageText: {
-        marginTop: 5,
-        color: '#666',
+    addMoreButtonSubtext: {
+        fontSize: 12,
+        color: '#888',
+        marginTop: 2,
     },
     inputContainer: {
         marginBottom: 15,

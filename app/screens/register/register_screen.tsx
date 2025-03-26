@@ -54,6 +54,12 @@ const RegisterScreen = () => {
     const [showTimePicker, setShowTimePicker] = useState(false);
     const [isSettingOpenTime, setIsSettingOpenTime] = useState(true);
     const [date, setDate] = useState(new Date());
+    // 브레이크타임 관련 상태 추가
+    const [breakTimeStart, setBreakTimeStart] = useState('14:00');
+    const [breakTimeEnd, setBreakTimeEnd] = useState('17:00');
+    const [isSettingBreakTimeStart, setIsSettingBreakTimeStart] = useState(true);
+    const [showBreakTimePicker, setShowBreakTimePicker] = useState(false);
+    const [breakTimeDate, setBreakTimeDate] = useState(new Date());
     // 이미지 관련 상태
     const [images, setImages] = useState<string[]>([]);
     const MAX_IMAGES = 5;
@@ -195,6 +201,21 @@ const RegisterScreen = () => {
         setShowTimePicker(true);
     };
     
+    // 브레이크타임 시간 선택기를 보여주는 함수
+    const showBreakTimePickerModal = (isStart: boolean) => {
+        // 현재 시간 문자열을 Date 객체로 변환
+        const timeString = isStart ? breakTimeStart : breakTimeEnd;
+        const [hours, minutes] = timeString.split(':').map(num => parseInt(num));
+        
+        const newDate = new Date();
+        newDate.setHours(hours);
+        newDate.setMinutes(minutes);
+        setBreakTimeDate(newDate);
+        
+        setIsSettingBreakTimeStart(isStart);
+        setShowBreakTimePicker(true);
+    };
+    
     // 시간 선택기에서 시간이 선택되었을 때 실행되는 함수
     const handleTimeChange = (event: any, selectedTime: Date | undefined) => {
         // Android에서만 자동으로 닫힘, iOS에서는 버튼으로 닫아야 함
@@ -213,6 +234,24 @@ const RegisterScreen = () => {
         }
     };
 
+    // 브레이크타임 시간 선택기에서 시간이 선택되었을 때 실행되는 함수
+    const handleBreakTimeChange = (event: any, selectedTime: Date | undefined) => {
+        // Android에서만 자동으로 닫힘, iOS에서는 버튼으로 닫아야 함
+        if (Platform.OS === 'android') {
+            setShowBreakTimePicker(false);
+            
+            if (selectedTime) {
+                setBreakTimeDate(selectedTime);
+                applySelectedBreakTime(selectedTime);
+            }
+        } else {
+            // iOS에서는 시간을 선택해도 피커가 닫히지 않고, 선택된 시간을 임시 저장
+            if (selectedTime) {
+                setBreakTimeDate(selectedTime);
+            }
+        }
+    };
+
     // 선택한 시간을 적용하는 함수 추가
     const applySelectedTime = (selectedDate: Date) => {
         const hours = selectedDate.getHours().toString().padStart(2, '0');
@@ -226,10 +265,45 @@ const RegisterScreen = () => {
         }
     };
 
+    // 선택한 브레이크타임을 적용하는 함수 추가
+    const applySelectedBreakTime = (selectedDate: Date) => {
+        const hours = selectedDate.getHours().toString().padStart(2, '0');
+        const minutes = selectedDate.getMinutes().toString().padStart(2, '0');
+        const timeString = `${hours}:${minutes}`;
+        
+        if (isSettingBreakTimeStart) {
+            setBreakTimeStart(timeString);
+        } else {
+            setBreakTimeEnd(timeString);
+        }
+        
+        // 브레이크타임 문자열 업데이트
+        updateBreakTimeString();
+    };
+    
+    // 브레이크타임 문자열 업데이트 함수
+    const updateBreakTimeString = () => {
+        const breakTimeStr = `${breakTimeStart}~${breakTimeEnd}`;
+        setBreakTime(breakTimeStr);
+    };
+
+    // 브레이크타임 변경 시 문자열 업데이트
+    useEffect(() => {
+        if (isBreakTimeEnabled) {
+            updateBreakTimeString();
+        }
+    }, [breakTimeStart, breakTimeEnd, isBreakTimeEnabled]);
+
     // 피커 확인 버튼 처리
     const handleConfirmTime = () => {
         applySelectedTime(date);
         setShowTimePicker(false);
+    };
+    
+    // 브레이크타임 피커 확인 버튼 처리
+    const handleConfirmBreakTime = () => {
+        applySelectedBreakTime(breakTimeDate);
+        setShowBreakTimePicker(false);
     };
 
     // 이미지 픽커 실행 함수
@@ -297,13 +371,16 @@ const RegisterScreen = () => {
         // 콜키지 정보 체크 (무료면 비용 필요 없음)
         const isCorkageValid = isCorkageFree || (!isCorkageFree && corkageFee.trim() !== '');
         
+        // 브레이크타임 체크 (활성화 되었으면 시간도 설정되어야 함)
+        const isBreakTimeValid = !isBreakTimeEnabled || (isBreakTimeEnabled && breakTimeStart !== '' && breakTimeEnd !== '');
+        
         // 모든 조건이 충족되면 버튼 활성화
         const isFormValid = isNameValid && isCategoryValid && isAddressValid && 
-                           isPhoneValid && isTimeValid && isCorkageValid;
+                           isPhoneValid && isTimeValid && isCorkageValid && isBreakTimeValid;
         
         setIsSaveButtonEnabled(isFormValid);
     }, [restaurantName, category, location, isAddressVerified, phoneNumber, 
-        openTime, closeTime, isCorkageFree, corkageFee]);
+        openTime, closeTime, isCorkageFree, corkageFee, isBreakTimeEnabled, breakTimeStart, breakTimeEnd]);
 
     // 콜키지 금액 포맷팅 함수 수정
     const formatCorkageFee = (value: string) => {
@@ -354,6 +431,8 @@ const RegisterScreen = () => {
         setClosedDays('');
         setSelectedClosedDays([]);
         setBreakTime('');
+        setBreakTimeStart('14:00');
+        setBreakTimeEnd('17:00');
         setIsBreakTimeEnabled(false);
         setImages([]);
         setGeocodingResponse(null);
@@ -689,13 +768,22 @@ const RegisterScreen = () => {
                     {/* 브레이크타임 입력 - 스위치가 켜졌을 때만 표시 */}
                     {isBreakTimeEnabled && (
                         <View style={styles.inputContainer}>
-                            <TextInput
-                                style={styles.input}
-                                value={breakTime}
-                                onChangeText={setBreakTime}
-                                placeholder="브레이크타임"
-                                placeholderTextColor="#888"
-                            />
+                            <Text style={styles.timeLabel}>브레이크타임</Text>
+                            <View style={styles.timePickerContainer}>
+                                <TouchableOpacity 
+                                    style={styles.timeButton}
+                                    onPress={() => showBreakTimePickerModal(true)}
+                                >
+                                    <Text style={styles.timeButtonText}>{breakTimeStart}</Text>
+                                </TouchableOpacity>
+                                <Text style={styles.timeSeparator}>~</Text>
+                                <TouchableOpacity 
+                                    style={styles.timeButton}
+                                    onPress={() => showBreakTimePickerModal(false)}
+                                >
+                                    <Text style={styles.timeButtonText}>{breakTimeEnd}</Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     )}
                 </View>
@@ -847,6 +935,45 @@ const RegisterScreen = () => {
                     </View>
                 </TouchableWithoutFeedback>
             </Modal>
+
+            {/* 브레이크타임 선택기 모달 */}
+            {showBreakTimePicker && (
+                Platform.OS === 'ios' ? (
+                    <TouchableWithoutFeedback onPress={() => setShowBreakTimePicker(false)}>
+                        <View style={styles.timePickerWrapper}>
+                            <TouchableWithoutFeedback>
+                                <View style={styles.timePickerContent}>
+                                    <View style={styles.timePickerHeader}>
+                                        <TouchableOpacity onPress={() => setShowBreakTimePicker(false)}>
+                                            <Text style={styles.timePickerCancelText}>취소</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity onPress={handleConfirmBreakTime}>
+                                            <Text style={styles.timePickerConfirmText}>확인</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                    <DateTimePicker
+                                        testID="breakTimePicker"
+                                        value={breakTimeDate}
+                                        mode="time"
+                                        is24Hour={true}
+                                        display="spinner"
+                                        onChange={handleBreakTimeChange}
+                                    />
+                                </View>
+                            </TouchableWithoutFeedback>
+                        </View>
+                    </TouchableWithoutFeedback>
+                ) : (
+                    <DateTimePicker
+                        testID="breakTimePicker"
+                        value={breakTimeDate}
+                        mode="time"
+                        is24Hour={true}
+                        display="default"
+                        onChange={handleBreakTimeChange}
+                    />
+                )
+            )}
         </SafeAreaView>
     );
 };

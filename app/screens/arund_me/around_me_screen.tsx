@@ -21,6 +21,7 @@ const AroundMeScreen = () => {
   
   useEffect(() => {
     console.log("레스토랑 데이터 개수:", restaurants?.length || 0);
+    console.log("JS KEY:", process.env.EXPO_PUBLIC_KAKAO_JS_KEY);
   }, [restaurants]);
 
   // 카카오맵 HTML 코드

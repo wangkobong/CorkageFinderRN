@@ -18,27 +18,14 @@ let isFirebaseInitialized = false;
 
 // RestaurantRegisterService 클래스 구현
 export class RestaurantRegisterService {
-  // Firebase 초기화 함수
-  static ensureFirebaseInitialized() {
-    if (!isFirebaseInitialized) {
-      try {
-        initializeApp(firebaseConfig);
-        isFirebaseInitialized = true;
-        console.log('Firebase가 초기화되었습니다.');
-      } catch (error) {
-        console.error('Firebase 초기화 오류:', error);
-        throw error;
-      }
-    }
-  }
+
   
   // 이미지 업로드 함수
-  static async uploadImages(images) {
+  static async uploadImages(images: { uri: string }[]): Promise<string[]> {
     try {
-      this.ensureFirebaseInitialized();
       const storage = getStorage();
-      const uploadedURLs = [];
-      const imageRefs = {};
+      const uploadedURLs: string[] = [];
+      const imageRefs: { [key: string]: any } = {};
       
       // 날짜 형식 지정하여 폴더명 생성
       const dateFormatter = new Intl.DateTimeFormat('ko-KR', {
@@ -81,9 +68,26 @@ export class RestaurantRegisterService {
   }
   
   // 레스토랑 정보 추가 함수
-  static async addRestaurant(data) {
+  static async addRestaurant(data: {
+    imageURLs: string[];
+    name: string;
+    category: any; // HomeRestaurantCategory enum을 수용하기 위해 any 타입으로 변경
+    isCorkageFree: boolean;
+    corkageFee: string;
+    sido: string;
+    sigungu: string;
+    phoneNumber: string;
+    address: string;
+    addressDetail: string;
+    businessHours: string;
+    closedDays: string;
+    corkageNote: string;
+    latitude: number;
+    longitude: number;
+    isBreaktime: boolean;
+    breaktime: string;
+  }): Promise<string> {
     try {
-      this.ensureFirebaseInitialized();
       const db = getFirestore();
       
       // Firestore에 데이터 추가

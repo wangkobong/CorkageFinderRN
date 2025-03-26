@@ -24,6 +24,10 @@ import { RestaurantRegisterService } from '../../services/RestaurantRegisterServ
 import { HomeRestaurantCategory } from '../../models/restaurant_category';
 import { GeocodingResponse } from '../../models/geocoding';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { auth } from '../../_layout';
+import { onAuthStateChanged } from 'firebase/auth';
 
 // 섹션 헤더 컴포넌트
 const SectionHeader = ({ title }: { title: string }) => (
@@ -33,6 +37,11 @@ const SectionHeader = ({ title }: { title: string }) => (
 );
 
 const RegisterScreen = () => {
+    const navigation = useNavigation();
+    // 로그인 상태 관리
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    // 로딩 상태
+    const [authLoading, setAuthLoading] = useState(true);
     // 뷰만 구현하기 위한 상태값들 (실제 로직은 구현하지 않음)
     const [restaurantName, setRestaurantName] = useState('');
     const [category, setCategory] = useState('');
@@ -534,10 +543,85 @@ const RegisterScreen = () => {
         }
     };
 
+    // 컴포넌트 마운트 시 로그인 상태 확인
+    useEffect(() => {
+        const checkLoginStatus = async () => {
+            try {
+                const isUserLoggedIn = await AsyncStorage.getItem('user_logged_in');
+                
+                if (isUserLoggedIn === 'true') {
+                    setIsLoggedIn(true);
+                } else {
+                    setIsLoggedIn(false);
+                }
+                
+                setAuthLoading(false);
+            } catch (error) {
+                console.error('로그인 상태 확인 중 오류:', error);
+                setAuthLoading(false);
+            }
+        };
+        
+        // 로그인 상태 확인
+        checkLoginStatus();
+        
+        // Firebase 인증 상태 리스너
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                setIsLoggedIn(true);
+            } else {
+                setIsLoggedIn(false);
+            }
+            setAuthLoading(false);
+        });
+        
+        // 컴포넌트 언마운트 시 리스너 해제
+        return () => unsubscribe();
+    }, []);
+    
+    // 로그인 필요 화면 렌더링
+    const renderLoginRequiredScreen = () => (
+        <View style={styles.loginRequiredContainer}>
+            <Ionicons name="lock-closed-outline" size={60} color="#ccc" style={styles.lockIcon} />
+            <Text style={styles.loginRequiredTitle}>로그인이 필요합니다</Text>
+            <Text style={styles.loginRequiredText}>
+                레스토랑 등록 요청을 위해 로그인이 필요합니다.
+                아래 탭에서 마이페이지를 눌러 로그인해주세요.
+            </Text>
+        </View>
+    );
+
+    // 로딩 중이거나 로그인되지 않은 경우 로그인 필요 화면 표시
+    if (authLoading) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <View style={styles.titleContainer}>
+                    <TitleText>등록 요청</TitleText>
+                </View>
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#4A6FE7" />
+                </View>
+            </SafeAreaView>
+        );
+    }
+    
+    if (!isLoggedIn) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <View style={styles.titleContainer}>
+                    <TitleText>등록 요청</TitleText>
+                </View>
+                {renderLoginRequiredScreen()}
+            </SafeAreaView>
+        );
+    }
+
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
-                <TitleText>등록 요청</TitleText>
+                <View style={styles.titleContainer}>
+                    <TitleText>등록 요청</TitleText>
+                </View>
                 
                 {/* 기본 정보 섹션 */}
                 <SectionHeader title="기본 정보" />
@@ -983,6 +1067,11 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#f8f8f8',
     },
+    titleContainer: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        backgroundColor: '#fff',
+    },
     scrollView: {
         flex: 1,
     },
@@ -1365,6 +1454,32 @@ const styles = StyleSheet.create({
     dayOptionTextSelected: {
         color: '#4A6FE7',
         fontWeight: '500',
+    },
+    loginRequiredContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    lockIcon: {
+        marginBottom: 20,
+    },
+    loginRequiredTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        marginBottom: 10,
+        textAlign: 'center',
+    },
+    loginRequiredText: {
+        fontSize: 14,
+        color: '#777',
+        marginBottom: 20,
+        textAlign: 'center',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });
 

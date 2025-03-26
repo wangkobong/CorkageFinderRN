@@ -334,8 +334,6 @@ const styles = StyleSheet.create({
     header: {
         paddingHorizontal: 20,
         paddingVertical: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
         backgroundColor: '#fff',
     },
     scrollView: {

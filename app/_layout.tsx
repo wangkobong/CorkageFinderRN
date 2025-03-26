@@ -20,10 +20,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Firebase 초기화
 const app = initializeApp(firebaseConfig);
 
-// Firebase 서비스 초기화 - Auth 부분 수정
-export const auth = initializeAuth(app, {
-  // persistence: getReactNativePersistence(AsyncStorage)
-});
+// Firebase 서비스 초기화
+export const auth = initializeAuth(app);
 export const db = getFirestore(app);
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.

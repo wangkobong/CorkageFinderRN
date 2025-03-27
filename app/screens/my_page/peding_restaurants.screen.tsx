@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TitleText } from '../../components/title_text';
 import { getDocs } from 'firebase/firestore';
 import { collection } from 'firebase/firestore';
 import { db } from '@/app/_layout';
 import { RestaurantCard } from '../../models/restaurant';
+import { router } from 'expo-router';
 
 // 타입 확장
 interface PendingRestaurant extends RestaurantCard {
@@ -39,18 +40,49 @@ const PendingRestaurantsScreen = () => {
     fetchData();
   }, []);
 
+  const handleRestaurantPress = (restaurantId: string) => {
+    router.push({
+      pathname: "/mypage/pending-restaurant-detail",
+      params: { id: restaurantId }
+    });
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text>로딩 중...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text style={styles.errorText}>오류: {error}</Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
+      <TitleText>대기 중인 식당 목록</TitleText>
+      {pendingRestaurants.length === 0 ? (
+        <Text style={styles.emptyText}>대기 중인 식당이 없습니다.</Text>
+      ) : (
         <FlatList
           data={pendingRestaurants}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <View style={styles.restaurantItem}>
+            <TouchableOpacity 
+              style={styles.restaurantItem}
+              onPress={() => handleRestaurantPress(item.id)}
+            >
               <Text style={styles.restaurantName}>{item.name}</Text>
               <Text>{item.address}</Text>
-            </View>
+            </TouchableOpacity>
           )}
         />
+      )}
     </SafeAreaView>
   );
 };
@@ -70,6 +102,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 4,
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 16,
+    marginTop: 16,
+  },
+  emptyText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 32,
+    color: '#666',
   },
 });
 

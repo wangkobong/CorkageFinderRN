@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { Stack } from 'expo-router';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';  
 import { TitleText } from '../../components/title_text';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { auth } from '../../_layout';
-
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { signInWithCredential, GoogleAuthProvider, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import { statusCodes } from '@react-native-google-signin/google-signin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter, router } from 'expo-router';
 
-// 인증 세션 완료 처리
-// WebBrowser.maybeCompleteAuthSession();
+// 미리 컴포넌트 import
+import PendingRestaurantsScreen from './peding_restaurants.screen';
 
 GoogleSignin.configure({
     webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID, // 파이어베이스 콘솔에서 받은 웹 클라이언트 ID
@@ -20,21 +21,21 @@ GoogleSignin.configure({
   });
 
 const MyPageScreen = () => {
+    const router = useRouter();
+
     // 로그인 상태 관리
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     // 로딩 상태 관리
     const [loading, setLoading] = useState(true);
     // 사용자 정보 상태 관리
     const [userInfo, setUserInfo] = useState({
-        name: '홍길동',
-        email: 'user@example.com',
-        profileImage: 'https://via.placeholder.com/100',
+        name: '',
+        email: '',
+        profileImage: '',
     });
 
     // 컴포넌트 마운트 시 인증 상태 확인
-    useEffect(() => {
-        console.log('인증 상태 확인 중...');
-        
+    useEffect(() => {        
         // AsyncStorage에서 로그인 상태 확인
         const checkLoginStatus = async () => {
             try {
@@ -186,9 +187,9 @@ const MyPageScreen = () => {
             // 상태 업데이트
             setIsLoggedIn(false);
             setUserInfo({
-                name: '홍길동',
-                email: 'user@example.com',
-                profileImage: 'https://via.placeholder.com/100',
+                name: '',
+                email: '',
+                profileImage: '',
             });
             
             console.log('로그아웃 성공 및 모든 세션 데이터 삭제됨');
@@ -204,7 +205,8 @@ const MyPageScreen = () => {
       // 승인하기 버튼 처리 함수
       const handleApprove = () => {
         console.log('승인하기 버튼 클릭됨');
-        // 여기에 승인 로직 구현
+        // 올바른 라우팅 경로 사용 (이제 파일 이름이 mypage/pending-restaurants.tsx로 생성됨)
+        router.push("/mypage/pending-restaurants");
       };
 
     // 로그인 화면 렌더링
@@ -242,17 +244,27 @@ const MyPageScreen = () => {
         <ScrollView style={styles.scrollView}>
             {/* 프로필 섹션 */}
             <View style={styles.profileSection}>
-                <Image 
-                    source={{ uri: userInfo.profileImage }} 
-                    style={styles.profileImage} 
-                />
+                {userInfo.profileImage ? (
+                    <Image 
+                        source={{ uri: userInfo.profileImage }} 
+                        style={styles.profileImage} 
+                    />
+                ) : (
+                    <View style={[styles.profileImage, styles.defaultProfileContainer]}>
+                        <Text style={styles.defaultProfileText}>
+                            {userInfo.name ? userInfo.name.charAt(0).toUpperCase() : '?'}
+                        </Text>
+                    </View>
+                )}
                 <View style={styles.profileInfo}>
-                    <Text style={styles.userName}>{userInfo.name}</Text>
+                    <Text style={styles.userName}>{userInfo.name || '로그인이 필요합니다'}</Text>
                     <Text style={styles.userEmail}>{userInfo.email}</Text>
                 </View>
-                <TouchableOpacity style={styles.editButton}>
-                    <Text style={styles.editButtonText}>수정</Text>
-                </TouchableOpacity>
+                {isLoggedIn && (
+                    <TouchableOpacity style={styles.editButton}>
+                        <Text style={styles.editButtonText}>수정</Text>
+                    </TouchableOpacity>
+                )}
             </View>
 
             {/* 구분선 */}
@@ -487,6 +499,17 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 17,
         fontWeight: 'bold',
+    },
+    defaultProfileContainer: {
+        backgroundColor: '#e0e0e0',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 35,
+    },
+    defaultProfileText: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: '#666',
     },
 });
 

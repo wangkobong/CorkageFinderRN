@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { TitleText } from '../../components/title_text';
 import { HomeRestaurantCategory, RestaurantCategoryInfo } from '../../models/restaurant_category';
 import SectionHeader from '../../components/section_header';
-import Restaurant, { getSampleRestaurants, RestaurantCard } from '../../models/restaurant';
+import Restaurant, {RestaurantCard } from '../../models/restaurant';
 import RestaurantMiniCardView from './subView/restaurant_mini_card_view';
 import { useRestaurantStore } from '../../store/_restaurantStore';
 import { useRouter } from 'expo-router';

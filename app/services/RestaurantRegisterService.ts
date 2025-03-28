@@ -12,7 +12,7 @@ import {
   deleteObject 
 } from 'firebase/storage';
 import { firebaseConfig } from '../../firebaseConfig';
-
+import { RestaurantCard } from '../models/restaurant';
 // Firebase 초기화 상태를 추적하는 변수
 let isFirebaseInitialized = false;
 
@@ -68,25 +68,7 @@ export class RestaurantRegisterService {
   }
   
   // 레스토랑 정보 추가 함수
-  static async addRestaurant(data: {
-    imageURLs: string[];
-    name: string;
-    category: any; // HomeRestaurantCategory enum을 수용하기 위해 any 타입으로 변경
-    isCorkageFree: boolean;
-    corkageFee: string;
-    sido: string;
-    sigungu: string;
-    phoneNumber: string;
-    address: string;
-    addressDetail: string;
-    businessHours: string;
-    closedDays: string;
-    corkageNote: string;
-    latitude: number;
-    longitude: number;
-    isBreaktime: boolean;
-    breaktime: string;
-  }): Promise<string> {
+  static async addRestaurant(data: RestaurantCard): Promise<string> {
     try {
       const db = getFirestore();
       
@@ -108,7 +90,8 @@ export class RestaurantRegisterService {
         latitude: data.latitude || 0.0,
         longitude: data.longitude || 0.0,
         isBreaktime: data.isBreaktime,
-        breaktime: data.breaktime
+        breaktime: data.breaktime,
+        drinkCategories: data.drinkCategories
       });
       
       console.log("Restaurant added with ID:", docRef.id);

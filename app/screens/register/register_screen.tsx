@@ -28,6 +28,8 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth } from '../../_layout';
 import { onAuthStateChanged } from 'firebase/auth';
+import { DrinkCategory, DRINK_CATEGORIES } from '../../models/drink_category';
+import { RestaurantCard, RestaurantCardImpl } from '../../models/restaurant';
 
 // 섹션 헤더 컴포넌트
 const SectionHeader = ({ title }: { title: string }) => (
@@ -89,6 +91,11 @@ const RegisterScreen = () => {
     // 저장 버튼 활성화 상태
     const [isSaveButtonEnabled, setIsSaveButtonEnabled] = useState(false);
 
+    // 음료 카테고리 선택 상태 추가
+    const [selectedDrinkCategories, setSelectedDrinkCategories] = useState<DrinkCategory[]>([]);
+    // 음료 카테고리 모달 표시 상태
+    const [showDrinkCategoryModal, setShowDrinkCategoryModal] = useState(false);
+
     // KakaoApiManager 인스턴스 생성
     const kakaoApiManager = new KakaoApiManager();
 
@@ -141,6 +148,22 @@ const RegisterScreen = () => {
         
         setClosedDays(closedDaysString);
         setShowClosedDaysModal(false);
+    };
+
+    // 음료 카테고리 선택 토글 함수
+    const toggleDrinkCategory = (category: DrinkCategory) => {
+        if (selectedDrinkCategories.includes(category)) {
+            // 이미 선택된 경우 제거
+            setSelectedDrinkCategories(selectedDrinkCategories.filter(c => c !== category));
+        } else {
+            // 선택되지 않은 경우 추가
+            setSelectedDrinkCategories([...selectedDrinkCategories, category]);
+        }
+    };
+
+    // 음료 카테고리 선택 완료
+    const confirmDrinkCategories = () => {
+        setShowDrinkCategoryModal(false);
     };
 
     // 컴포넌트 마운트 시 이미 설정된 휴무일이 있다면 선택 상태 초기화
@@ -383,13 +406,18 @@ const RegisterScreen = () => {
         // 브레이크타임 체크 (활성화 되었으면 시간도 설정되어야 함)
         const isBreakTimeValid = !isBreakTimeEnabled || (isBreakTimeEnabled && breakTimeStart !== '' && breakTimeEnd !== '');
         
+        // 음료 카테고리 체크 (최소 1개 이상 선택)
+        const isDrinkCategoryValid = selectedDrinkCategories.length > 0;
+        
         // 모든 조건이 충족되면 버튼 활성화
         const isFormValid = isNameValid && isCategoryValid && isAddressValid && 
-                           isPhoneValid && isTimeValid && isCorkageValid && isBreakTimeValid;
+                           isPhoneValid && isTimeValid && isCorkageValid && 
+                           isBreakTimeValid && isDrinkCategoryValid;
         
         setIsSaveButtonEnabled(isFormValid);
     }, [restaurantName, category, location, isAddressVerified, phoneNumber, 
-        openTime, closeTime, isCorkageFree, corkageFee, isBreakTimeEnabled, breakTimeStart, breakTimeEnd]);
+        openTime, closeTime, isCorkageFree, corkageFee, isBreakTimeEnabled, 
+        breakTimeStart, breakTimeEnd, selectedDrinkCategories]);
 
     // 콜키지 금액 포맷팅 함수 수정
     const formatCorkageFee = (value: string) => {
@@ -445,6 +473,7 @@ const RegisterScreen = () => {
         setIsBreakTimeEnabled(false);
         setImages([]);
         setGeocodingResponse(null);
+        setSelectedDrinkCategories([]);
     };
 
     // 저장 버튼 클릭 시 호출되는 함수 (수정)
@@ -498,27 +527,30 @@ const RegisterScreen = () => {
                 }
             }
             
-            // 4. 레스토랑 데이터 객체 생성 (수정)
+            // 4. 레스토랑 데이터 객체 생성
             const categoryEnum = getCategoryEnum();
-            const restaurantData = {
+            
+            // RestaurantCardImpl 생성자를 사용하여 RestaurantCard 객체 생성
+            const restaurantData: RestaurantCard = new RestaurantCardImpl(
                 imageURLs,
-                name: restaurantName,
-                category: categoryEnum,
+                restaurantName,
+                categoryEnum,
                 isCorkageFree,
-                corkageFee: isCorkageFree ? '' : corkageFee,
+                isCorkageFree ? '' : corkageFee,
                 sido,
                 sigungu,
                 phoneNumber,
-                address: location,
-                addressDetail: detailAddress,
-                businessHours: businessHoursStr,
+                location,
+                detailAddress,
+                businessHoursStr,
                 closedDays,
-                corkageNote: corkageMemo,
+                corkageMemo,
                 latitude,
                 longitude,
-                isBreaktime: isBreakTimeEnabled,
-                breaktime: isBreakTimeEnabled ? breakTime : ''
-            };
+                isBreakTimeEnabled,
+                isBreakTimeEnabled ? breakTime : '',
+                selectedDrinkCategories // 선택된 음료 카테고리 배열
+            );
             
             // 5. Firestore에 레스토랑 데이터 저장
             await RestaurantRegisterService.addRestaurant(restaurantData);
@@ -872,6 +904,24 @@ const RegisterScreen = () => {
                     )}
                 </View>
                 
+                {/* 음료 카테고리 섹션 */}
+                <SectionHeader title="음료 카테고리" />
+                <View style={styles.sectionContent}>
+                    <Text style={styles.inputLabel}>취급 음료 (최소 1개 이상)</Text>
+                    <TouchableOpacity 
+                        style={styles.categorySelector}
+                        onPress={() => setShowDrinkCategoryModal(true)}
+                    >
+                        <Text style={selectedDrinkCategories.length > 0 ? styles.categorySelectedText : styles.placeholderText}>
+                            {selectedDrinkCategories.length > 0 
+                                ? selectedDrinkCategories.map(cat => 
+                                    DRINK_CATEGORIES.find(c => c.id === cat)?.title).join(', ') 
+                                : '음료 카테고리 선택'}
+                        </Text>
+                        <Ionicons name="chevron-down" size={20} color="#888" />
+                    </TouchableOpacity>
+                </View>
+                
                 {/* 저장 버튼 */}
                 <TouchableOpacity 
                     style={[
@@ -1010,6 +1060,71 @@ const RegisterScreen = () => {
                                     <TouchableOpacity 
                                         style={[styles.modalButton, styles.confirmButton]}
                                         onPress={confirmClosedDays}
+                                    >
+                                        <Text style={styles.confirmButtonText}>확인</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
+
+            {/* 음료 카테고리 선택 모달 */}
+            <Modal
+                visible={showDrinkCategoryModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowDrinkCategoryModal(false)}
+            >
+                <TouchableWithoutFeedback onPress={() => setShowDrinkCategoryModal(false)}>
+                    <View style={styles.modalOverlay}>
+                        <TouchableWithoutFeedback>
+                            <View style={styles.modalContent}>
+                                <Text style={styles.modalTitle}>음료 카테고리 선택</Text>
+                                <Text style={styles.modalSubtitle}>하나 이상 선택해주세요</Text>
+                                
+                                {DRINK_CATEGORIES.map((drink) => (
+                                    <TouchableOpacity
+                                        key={drink.id}
+                                        style={[
+                                            styles.dayOption,
+                                            selectedDrinkCategories.includes(drink.id) && styles.dayOptionSelected
+                                        ]}
+                                        onPress={() => toggleDrinkCategory(drink.id)}
+                                    >
+                                        <View style={styles.dayOptionContent}>
+                                            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                                                <Text style={{fontSize: 20, marginRight: 10}}>{drink.emoji}</Text>
+                                                <Text style={[
+                                                    styles.dayOptionText,
+                                                    selectedDrinkCategories.includes(drink.id) && styles.dayOptionTextSelected
+                                                ]}>
+                                                    {drink.title}
+                                                </Text>
+                                            </View>
+                                            {selectedDrinkCategories.includes(drink.id) && (
+                                                <Ionicons name="checkmark" size={20} color="#4A6FE7" />
+                                            )}
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                                
+                                <View style={styles.modalButtonContainer}>
+                                    <TouchableOpacity 
+                                        style={[styles.modalButton, styles.cancelButton]}
+                                        onPress={() => setShowDrinkCategoryModal(false)}
+                                    >
+                                        <Text style={styles.cancelButtonText}>취소</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity 
+                                        style={[
+                                            styles.modalButton, 
+                                            styles.confirmButton,
+                                            selectedDrinkCategories.length === 0 && {backgroundColor: '#cccccc'}
+                                        ]}
+                                        onPress={confirmDrinkCategories}
+                                        disabled={selectedDrinkCategories.length === 0}
                                     >
                                         <Text style={styles.confirmButtonText}>확인</Text>
                                     </TouchableOpacity>

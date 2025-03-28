@@ -43,10 +43,6 @@ const PendingRestaurantDetailScreen = () => {
           
           setRestaurant(restaurantData);
           
-          // 콘솔에 전체 데이터 및 이미지 URL 로깅
-          console.log("가져온 레스토랑 데이터:", JSON.stringify(restaurantData, null, 2));
-          console.log("이미지 URLs:", restaurantData.imageURLs);
-          
           if (restaurantData.imageURLs && restaurantData.imageURLs.length > 0) {
             console.log("이미지 URL 개수:", restaurantData.imageURLs.length);
             restaurantData.imageURLs.forEach((url, index) => {

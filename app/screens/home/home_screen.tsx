@@ -7,8 +7,15 @@ import SectionHeader from '../../components/section_header';
 import Restaurant, { getSampleRestaurants, RestaurantCard } from '../../models/restaurant';
 import RestaurantMiniCardView from './subView/restaurant_mini_card_view';
 import { useRestaurantStore } from '../../store/_restaurantStore';
+import { useRouter } from 'expo-router';
+
+
+
 
 const HomeScreen = () => {
+
+    const router = useRouter();
+
     const restaurants = useRestaurantStore((state: any) => state.restaurants);
 
     useEffect(() => {
@@ -32,35 +39,29 @@ const HomeScreen = () => {
         // 모든 카테고리 가져오기
         const foodCategories = RestaurantCategoryInfo.allCases();
 
+        // 카테고리를 3개씩 그룹화
+        const chunkedCategories = [];
+        for (let i = 0; i < foodCategories.length; i += 3) {
+            chunkedCategories.push(foodCategories.slice(i, i + 3));
+        }
+
         return (
             <View style={styles.foodTypeSection}>
                 <View style={styles.gridContainer}>
-                    {/* 첫 번째 줄 */}
-                    <View style={styles.row}>
-                        {foodCategories.slice(0, 3).map(category => (
-                            <TouchableOpacity 
-                                key={category} 
-                                style={styles.gridItem}
-                                onPress={() => console.log(`${RestaurantCategoryInfo.getTitle(category)} 선택됨`)}
-                            >
-                                <Text style={styles.foodTypeEmoji}>{RestaurantCategoryInfo.getEmoji(category)}</Text>
-                                <Text style={styles.foodTypeText}>{RestaurantCategoryInfo.getTitle(category)}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                    {/* 두 번째 줄 */}
-                    <View style={styles.row}>
-                        {foodCategories.slice(3, 6).map(category => (
-                            <TouchableOpacity 
-                                key={category} 
-                                style={styles.gridItem}
-                                onPress={() => console.log(`${RestaurantCategoryInfo.getTitle(category)} 선택됨`)}
-                            >
-                                <Text style={styles.foodTypeEmoji}>{RestaurantCategoryInfo.getEmoji(category)}</Text>
-                                <Text style={styles.foodTypeText}>{RestaurantCategoryInfo.getTitle(category)}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
+                    {chunkedCategories.map((rowCategories, rowIndex) => (
+                        <View key={`row-${rowIndex}`} style={styles.row}>
+                            {rowCategories.map(category => (
+                                <TouchableOpacity 
+                                    key={category} 
+                                    style={styles.gridItem}
+                                    onPress={() => clickCategory(category)}
+                                >
+                                    <Text style={styles.foodTypeEmoji}>{RestaurantCategoryInfo.getEmoji(category)}</Text>
+                                    <Text style={styles.foodTypeText}>{RestaurantCategoryInfo.getTitle(category)}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    ))}
                 </View>
             </View>
         );
@@ -113,6 +114,13 @@ const HomeScreen = () => {
                 />
             </View>
         );
+    }
+
+    const clickCategory = (category: HomeRestaurantCategory) => {
+        router.push({
+            pathname: "/home/restaurants",
+            params: { category: RestaurantCategoryInfo.getTitle(category) }
+        });
     }
 
     return (

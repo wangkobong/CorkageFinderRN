@@ -5,7 +5,7 @@ import { TitleText } from '../../components/title_text';
 import { getDocs } from 'firebase/firestore';
 import { collection } from 'firebase/firestore';
 import { db } from '@/app/_layout';
-import { RestaurantCard } from '../../models/restaurant';
+import { RestaurantCard } from '../../../api/models/restaurant';
 import { router } from 'expo-router';
 
 // 타입 확장

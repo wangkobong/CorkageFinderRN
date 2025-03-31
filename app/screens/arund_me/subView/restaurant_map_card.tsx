@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
-import { RestaurantCard } from '../../../models/restaurant';
-import { RestaurantCategoryInfo } from '../../../models/restaurant_category';
-import { HomeRestaurantCategory } from '../../../models/restaurant_category';
+import { RestaurantCard } from '../../../../api/models/restaurant';
+import { RestaurantCategoryInfo } from '../../../../api/models/restaurant_category';
+import { HomeRestaurantCategory } from '../../../../api/models/restaurant_category';
 
 interface RestaurantMiniCardProps {
     restaurant: Partial<RestaurantCard>;

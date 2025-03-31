@@ -1,4 +1,4 @@
-import { GeocodingResponse } from '../models/geocoding';
+import { GeocodingResponse } from '../../api/models/geocoding';
 
 /**
  * KakaoApiManager.ts

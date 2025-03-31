@@ -12,7 +12,7 @@ import {
   deleteObject 
 } from 'firebase/storage';
 import { firebaseConfig } from '../../firebaseConfig';
-import { RestaurantCard } from '../models/restaurant';
+import { RestaurantCard } from '../../api/models/restaurant';
 // Firebase 초기화 상태를 추적하는 변수
 let isFirebaseInitialized = false;
 

@@ -2,30 +2,23 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TitleText } from '../../components/title_text';
-import { HomeRestaurantCategory, RestaurantCategoryInfo } from '../../models/restaurant_category';
+import { HomeRestaurantCategory, RestaurantCategoryInfo } from '../../../api/models/restaurant_category';
 import SectionHeader from '../../components/section_header';
-import Restaurant, {RestaurantCard } from '../../models/restaurant';
+import Restaurant, {RestaurantCard,  RestaurantCardImpl, getSampleRestaurants } from '../../../api/models/restaurant';
 import RestaurantMiniCardView from './subView/restaurant_mini_card_view';
 import { useRestaurantStore } from '../../store/_restaurantStore';
-import { useRouter } from 'expo-router';
-
-
+import { useHomeData } from '../../../hooks/home/useHomeData';
 
 
 const HomeScreen = () => {
-
-    const router = useRouter();
-
-    const restaurants = useRestaurantStore((state: any) => state.restaurants);
-
-    useEffect(() => {
-        console.log("홈 화면 레스토랑 데이터 개수:", restaurants?.length || 0);
-    }, [restaurants]);
-
-    const getRandomRestaurants = (restaurants: Restaurant[], count: number) => {
-        const shuffled = [...restaurants].sort(() => 0.5 - Math.random());
-        return shuffled.slice(0, count);
-    };
+    const {
+        restaurants,
+        randomRestaurants,
+        corkageFreeRestaurants,
+        loading,
+        error,
+        handleCategoryClick
+    } = useHomeData();
 
     const titleSection = () => {
         return (
@@ -54,7 +47,7 @@ const HomeScreen = () => {
                                 <TouchableOpacity 
                                     key={category} 
                                     style={styles.gridItem}
-                                    onPress={() => clickCategory(category)}
+                                    onPress={() => handleCategoryClick(category)}
                                 >
                                     <Text style={styles.foodTypeEmoji}>{RestaurantCategoryInfo.getEmoji(category)}</Text>
                                     <Text style={styles.foodTypeText}>{RestaurantCategoryInfo.getTitle(category)}</Text>
@@ -68,14 +61,13 @@ const HomeScreen = () => {
     }
 
     const popularRestaurantsSection = () => {
-        const popularRestaurants = getRandomRestaurants(restaurants, 10);
         
         return (
             <View style={styles.popularRestaurantsSection}>
                 <SectionHeader>실시간 인기 콜키지</SectionHeader>
                 <FlatList
                     horizontal
-                    data={popularRestaurants}
+                    data={randomRestaurants}
                     keyExtractor={(item, index) => index.toString()}
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.horizontalListContent}
@@ -91,10 +83,6 @@ const HomeScreen = () => {
     }
 
     const corkageFreeSection = () => {
-        const corkageFreeRestaurants = getRandomRestaurants(
-            restaurants.filter((restaurant: Restaurant) => restaurant.isCorkageFree), 
-            10
-        );
 
         return (
             <View style={styles.corkageFreeSection}>
@@ -114,13 +102,6 @@ const HomeScreen = () => {
                 />
             </View>
         );
-    }
-
-    const clickCategory = (category: HomeRestaurantCategory) => {
-        router.push({
-            pathname: "/home/restaurants",
-            params: { category: RestaurantCategoryInfo.getTitle(category) }
-        });
     }
 
     return (

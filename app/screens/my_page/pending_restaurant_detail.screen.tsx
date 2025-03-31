@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { doc, getDoc, deleteDoc, setDoc, collection } from 'firebase/firestore';
 import { db } from '@/app/_layout';
 import { useLocalSearchParams, router } from 'expo-router';
-import { RestaurantCard } from '../../models/restaurant';
+import { RestaurantCard } from '../../../api/models/restaurant';
 import { TitleText } from '../../components/title_text';
 
 // 상세 정보 타입

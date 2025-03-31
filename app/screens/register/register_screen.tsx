@@ -21,15 +21,15 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import KakaoApiManager from '../../services/KakaoApiManager';
 import * as ImagePicker from 'expo-image-picker';
 import { RestaurantRegisterService } from '../../services/RestaurantRegisterService';
-import { HomeRestaurantCategory } from '../../models/restaurant_category';
-import { GeocodingResponse } from '../../models/geocoding';
+import { HomeRestaurantCategory } from '../../../api/models/restaurant_category';
+import { GeocodingResponse } from '../../../api/models/geocoding';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth } from '../../_layout';
 import { onAuthStateChanged } from 'firebase/auth';
-import { DrinkCategory, DRINK_CATEGORIES } from '../../models/drink_category';
-import { RestaurantCard, RestaurantCardImpl } from '../../models/restaurant';
+import { DrinkCategory, DRINK_CATEGORIES } from '../../../api/models/drink_category';
+import { RestaurantCard, RestaurantCardImpl } from '../../../api/models/restaurant';
 
 // 섹션 헤더 컴포넌트
 const SectionHeader = ({ title }: { title: string }) => (

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import Restaurant from '../models/restaurant';
+import Restaurant from '../../api/models/restaurant';
 
 /**
  * 레스토랑 스토어의 상태와 액션을 정의하는 인터페이스

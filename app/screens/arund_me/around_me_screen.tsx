@@ -6,7 +6,7 @@ import { WebView } from 'react-native-webview';
 import { useRestaurantStore } from '../../store/_restaurantStore';
 import SectionHeader from '@/app/components/section_header';
 import RestaurantMapCard from './subView/restaurant_map_card';
-import { RestaurantCard } from '../../models/restaurant';
+import { RestaurantCard } from '../../../api/models/restaurant';
 
 
 const AroundMeScreen = () => {

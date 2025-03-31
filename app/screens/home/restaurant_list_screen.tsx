@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native'; 
-import { RestaurantCard } from '@/app/models/restaurant';   
-import { DRINK_CATEGORIES } from '@/app/models/drink_category';
+import { RestaurantCard } from '@/api/models/restaurant';   
+import { DRINK_CATEGORIES } from '@/api/models/drink_category';
 
 const filterList = [
     { id: "all", name: "전체" },
     { id: "distance", name: "가까운순" },
     { id: "corkage", name: "콜키지비용" },
-  ];
+];
 
-const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
+const RestaurantListScreen = () => {
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   // 카테고리 선택/해제 핸들러
   const handleCategorySelection = (id: string, name: string) => {
@@ -30,7 +30,6 @@ const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     // navigation.navigate('CategoryGoals', { categoryId: id, categoryName: name });
   };
 
-
   const categoryFilterSection = () => (
     <View style={styles.categorySection}>
       <ScrollView
@@ -44,7 +43,7 @@ const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
             <TouchableOpacity
               key={id}
               style={[styles.categoryItem, isSelected && styles.selectedCategoryItem]}
-              onPress={() => handleCategoryClick(id, name)}
+              onPress={() => handleCategorySelection(id, name)}
               activeOpacity={0.7}
             >
               <Text style={[styles.categoryItemText, isSelected && styles.selectedCategoryItemText]}>
@@ -57,13 +56,11 @@ const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     </View>
   );
 
-const RestaurantListScreen = () => {
-
-    return (
-        <SafeAreaView style={styles.container}>
-            {categoryFilterSection()}
-        </SafeAreaView>
-    );
+  return (
+    <SafeAreaView style={styles.container}>
+      {categoryFilterSection()}
+    </SafeAreaView>
+  );
 }
 
 export default RestaurantListScreen;

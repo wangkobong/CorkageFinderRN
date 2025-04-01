@@ -5,6 +5,8 @@ import { useRestaurantListData, SortOption } from '@/hooks/home/useRestaurantLis
 import { HomeRestaurantCategory, RestaurantCategoryInfo } from '@/api/models/restaurant_category';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useRestaurantStore } from '@/app/store/_restaurantStore';
+
 
 interface RestaurantListScreenProps {
   category?: HomeRestaurantCategory;
@@ -19,6 +21,7 @@ const RestaurantListScreen: React.FC<RestaurantListScreenProps> = ({
   const [menuVisible, setMenuVisible] = useState(false);
   const { restaurants, loading, error, setSorting } = useRestaurantListData(selectedRestaurantCategory);
   const router = useRouter();
+  const setSelectedRestaurant = useRestaurantStore((state: any) => state.setSelectedRestaurant);
 
   // 필터 버튼을 눌렀을 때 실행될 함수
   const handleFilterPress = () => {
@@ -45,6 +48,20 @@ const RestaurantListScreen: React.FC<RestaurantListScreenProps> = ({
     } else {
       router.setParams({ category: undefined });
     }
+  };
+
+  // 레스토랑 아이템 클릭 시 호출될 함수
+  const handleRestaurantPress = (restaurant: RestaurantCard) => {
+    setSelectedRestaurant(restaurant);
+
+    // 레스토랑 상세 페이지로 이동
+    router.push({
+      pathname: '/home/restaurant-detail',
+      params: { 
+        restaurantName: restaurant.name,
+        backButtonTitle: '뒤로'
+      }
+    });
   };
 
   const restaurantFilterSection = () => (
@@ -106,7 +123,11 @@ const RestaurantListScreen: React.FC<RestaurantListScreenProps> = ({
   );
 
   const renderRestaurantItem = ({ item }: { item: RestaurantCard }) => (
-    <TouchableOpacity style={styles.restaurantItem} activeOpacity={0.7}>
+    <TouchableOpacity 
+      style={styles.restaurantItem} 
+      activeOpacity={0.7}
+      onPress={() => handleRestaurantPress(item)}
+    >
       <Image 
         source={{ uri: item.imageURLs?.[0] || 'https://via.placeholder.com/100' }} 
         style={styles.restaurantImage} 

@@ -31,11 +31,11 @@ export const useHomeData = () => {
                 setRestaurants(data);
 
                 // 랜덤 레스토랑 설정
-                setRandomRestaurants(getRandomRestaurants(data, 3));
+                setRandomRestaurants(getRandomRestaurants(data, 10));
 
                 // 코키지 프리 레스토랑 필터링 후 랜덤 선택
                 const corkageFree = data.filter((restaurant: Restaurant) => restaurant.isCorkageFree);
-                setCorkageFreeRestaurants(restaurants);
+                setCorkageFreeRestaurants(corkageFree);
 
                 setLoading(false);
             } catch (err) {

@@ -1,47 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Image } from 'react-native'; 
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Image, Modal } from 'react-native'; 
 import { RestaurantCard } from '@/api/models/restaurant';   
-import { DRINK_CATEGORIES } from '@/api/models/drink_category';
-import { useRestaurantListData } from '@/hooks/home/useRestaurantListData';
+import { useRestaurantListData, SortOption } from '@/hooks/home/useRestaurantListData';
 import { HomeRestaurantCategory, RestaurantCategoryInfo } from '@/api/models/restaurant_category';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-
-
-const filterList = [
-    { id: "all", name: "전체" },
-    { id: "distance", name: "가까운순" },
-    { id: "corkage", name: "콜키지비용" },
-];
 
 interface RestaurantListScreenProps {
   category?: HomeRestaurantCategory;
+  showFilterButton?: boolean;
 }
 
-const RestaurantListScreen: React.FC<RestaurantListScreenProps> = ({ category }) => {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+const RestaurantListScreen: React.FC<RestaurantListScreenProps> = ({ 
+  category,
+  showFilterButton = false
+}) => {
   const [selectedRestaurantCategory, setSelectedRestaurantCategory] = useState<HomeRestaurantCategory | undefined>(category);
-  const { restaurants, loading, error } = useRestaurantListData(selectedRestaurantCategory);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const { restaurants, loading, error, setSorting } = useRestaurantListData(selectedRestaurantCategory);
   const router = useRouter();
 
-  // 카테고리 선택/해제 핸들러
-  const handleCategorySelection = (id: string, name: string) => {
-    // 이미 선택된 카테고리를 다시 클릭하면 선택 해제
-    if (selectedCategory === id) {
-      setSelectedCategory(null);
-    } else {
-      setSelectedCategory(id);
-    }
-    // 원래 핸들러 호출
-    handleCategoryClick(id, name);
+  // 필터 버튼을 눌렀을 때 실행될 함수
+  const handleFilterPress = () => {
+    setMenuVisible(true);
+  };
+  
+  // 메뉴 아이템 선택 시 호출될 함수
+  const handleMenuItemPress = (sortOption: SortOption) => {
+    // 정렬 함수 호출
+    setSorting(sortOption);
+    // 메뉴 닫기
+    setMenuVisible(false);
   };
 
-  const handleCategoryClick = (id: string, name: string) => {
-    console.log(`카테고리 클릭됨: ${id}, ${name}`);
-    // 네비게이션 기능이 추가되면 다음과 같이 구현할 수 있습니다:
-    // navigation.navigate('CategoryGoals', { categoryId: id, categoryName: name });
-  };
-
+  // 레스토랑 카테고리 선택 핸들러
   const handleRestaurantCategorySelection = (restaurantCategory: HomeRestaurantCategory | undefined) => {
     setSelectedRestaurantCategory(restaurantCategory);
     
@@ -100,32 +92,16 @@ const RestaurantListScreen: React.FC<RestaurantListScreenProps> = ({ category })
           );
         })}
       </ScrollView>
-    </View>
-  );
-
-  const categoryFilterSection = () => (
-    <View style={styles.categorySection}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoryScrollContainer}
-      >
-        {filterList.map(({ id, name }) => {
-          const isSelected = selectedCategory === id;
-          return (
-            <TouchableOpacity
-              key={id}
-              style={[styles.categoryItem, isSelected && styles.selectedCategoryItem]}
-              onPress={() => handleCategorySelection(id, name)}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.categoryItemText, isSelected && styles.selectedCategoryItemText]}>
-                {name}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      
+      {showFilterButton && (
+        <TouchableOpacity 
+          onPress={handleFilterPress}
+          style={styles.filterButton}
+        >
+          <Ionicons name="options-outline" size={20} color="#444" />
+          <Text style={styles.filterButtonText}>필터</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -175,6 +151,48 @@ const RestaurantListScreen: React.FC<RestaurantListScreenProps> = ({ category })
     />
   );
 
+  // 필터 모달 섹션을 별도의 함수로 추출
+  const filterModalSection = () => (
+    <Modal
+      transparent={true}
+      visible={menuVisible}
+      animationType="fade"
+      onRequestClose={() => setMenuVisible(false)}
+    >
+      <TouchableOpacity
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={() => setMenuVisible(false)}
+      >
+        <View style={styles.menuContainer}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => handleMenuItemPress("distance")}
+          >
+            <Ionicons name="navigate-outline" size={20} color="#333" />
+            <Text style={styles.menuItemText}>거리순</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => handleMenuItemPress("corkage")}
+          >
+            <Ionicons name="cash-outline" size={20} color="#333" />
+            <Text style={styles.menuItemText}>콜키지비용순</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => handleMenuItemPress("rating")}
+          >
+            <Ionicons name="star-outline" size={20} color="#333" />
+            <Text style={styles.menuItemText}>평점순</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -195,6 +213,7 @@ const RestaurantListScreen: React.FC<RestaurantListScreenProps> = ({ category })
     <SafeAreaView style={styles.container}>
       {restaurantFilterSection()}
       {restaurantListSection()}
+      {filterModalSection()}
     </SafeAreaView>
   );
 }
@@ -216,10 +235,14 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 3,
         elevation: 3,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
     restaurantCategoryScrollContainer: {
         paddingHorizontal: 15,
         flexDirection: 'row',
+        flex: 1,
     },
     restaurantCategoryTab: {
         paddingVertical: 10,
@@ -245,37 +268,19 @@ const styles = StyleSheet.create({
     selectedRestaurantCategoryTabText: {
         color: '#fff',
     },
-    categorySection: {
-        padding: 16,
-    },
-    categoryScrollContainer: {
-        paddingTop: 25,
-        paddingRight: 16
-    },
-    categoryList: {
+    filterButton: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 10,
-    },
-    categoryItem: {
-        paddingVertical: 8,
+        alignItems: 'center',
         paddingHorizontal: 16,
-        backgroundColor: '#fff',
+        paddingVertical: 8,
+        marginRight: 15,
         borderRadius: 20,
-        borderWidth: 1,
-        borderColor: '#E5E5E5',
-        marginRight: 10,
+        backgroundColor: '#f5f5f5',
     },
-    selectedCategoryItem: {
-        backgroundColor: '#6200ee',
-        borderColor: '#6200ee',
-    },
-    categoryItemText: {
+    filterButtonText: {
+        marginLeft: 5,
         fontSize: 14,
-        color: '#000',
-    },
-    selectedCategoryItemText: {
-        color: '#fff',
+        color: '#444',
     },
     listContainer: {
         padding: 16,
@@ -352,4 +357,35 @@ const styles = StyleSheet.create({
         fontSize: 20,
         marginRight: 6,
     },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.2)',
+        justifyContent: 'flex-start',
+        alignItems: 'flex-end',
+    },
+    menuContainer: {
+        backgroundColor: 'white',
+        marginTop: 60,
+        marginRight: 10,
+        borderRadius: 8,
+        padding: 5,
+        width: 160,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+    },
+    menuItemText: {
+        marginLeft: 10,
+        fontSize: 16,
+        color: '#333',
+    }
 });

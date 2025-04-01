@@ -16,6 +16,9 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { initializeAuth, onAuthStateChanged } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Zustand 스토어 import
+import { useRestaurantStore } from './store/_restaurantStore';
+
 // Firebase 초기화
 const app = initializeApp(firebaseConfig);
 
@@ -32,6 +35,8 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
   
+    // Zustand 스토어에서 데이터 설정 함수 가져오기
+    const setRestaurants = useRestaurantStore((state: any) => state.setRestaurants);
 
   useEffect(() => {
     if (loaded) {
@@ -40,6 +45,27 @@ export default function RootLayout() {
   }, [loaded]);
 
   // Firestore 데이터 가져오기 및 Zustand 스토어에 저장
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // 레스토랑 데이터 가져오기
+        const restaurantsSnapshot = await getDocs(collection(db, "approved"));
+        const restaurantsData = restaurantsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        // Zustand 스토어에 레스토랑 데이터 저장
+        setRestaurants(restaurantsData);
+        console.log("레스토랑 데이터가 스토어에 저장되었습니다:", restaurantsData.length);
+        
+      } catch (error) {
+        console.error("Firestore 데이터 가져오기 오류:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
 
   // Firebase 인증 상태 리스너 활성화 (필요한 경우)

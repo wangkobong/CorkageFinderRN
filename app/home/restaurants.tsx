@@ -2,6 +2,8 @@ import React from 'react';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import RestaurantListScreen from '../screens/home/restaurant_list_screen';
 import { HomeRestaurantCategory, RestaurantCategoryInfo } from '@/api/models/restaurant_category';
+import { TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function PendingRestaurantsPage() {
   const { category } = useLocalSearchParams();
@@ -40,13 +42,30 @@ export default function PendingRestaurantsPage() {
     }
   }
   
+  // 필터 버튼을 눌렀을 때 실행될 함수
+  const handleFilterPress = () => {
+    console.log('필터 버튼이 눌렸습니다');
+    // 여기에 필터 관련 로직을 추가할 수 있습니다
+  };
+  
   return (
     <>
       <Stack.Screen
         options={{
-          headerTitle: category?.toString() || "",
+          headerTitle: category ? 
+            (typedCategory ? RestaurantCategoryInfo.getTitle(typedCategory) : category.toString()) : 
+            "음식점 목록",
           headerBackTitle: "홈",
-          headerShown: true
+          headerShown: true,
+          headerShadowVisible: false,
+          headerRight: () => (
+            <TouchableOpacity 
+              onPress={handleFilterPress}
+              style={{ marginRight: 15 }}
+            >
+              <Ionicons name="options-outline" size={24} color="#000" />
+            </TouchableOpacity>
+          )
         }}
       />
       <RestaurantListScreen category={typedCategory} />

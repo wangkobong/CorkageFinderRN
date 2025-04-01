@@ -5,6 +5,7 @@ import { DRINK_CATEGORIES } from '@/api/models/drink_category';
 import { useRestaurantListData } from '@/hooks/home/useRestaurantListData';
 import { HomeRestaurantCategory, RestaurantCategoryInfo } from '@/api/models/restaurant_category';
 import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 
 const filterList = [
@@ -19,7 +20,9 @@ interface RestaurantListScreenProps {
 
 const RestaurantListScreen: React.FC<RestaurantListScreenProps> = ({ category }) => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const { restaurants, loading, error } = useRestaurantListData(category);
+  const [selectedRestaurantCategory, setSelectedRestaurantCategory] = useState<HomeRestaurantCategory | undefined>(category);
+  const { restaurants, loading, error } = useRestaurantListData(selectedRestaurantCategory);
+  const router = useRouter();
 
   // 카테고리 선택/해제 핸들러
   const handleCategorySelection = (id: string, name: string) => {
@@ -38,6 +41,67 @@ const RestaurantListScreen: React.FC<RestaurantListScreenProps> = ({ category })
     // 네비게이션 기능이 추가되면 다음과 같이 구현할 수 있습니다:
     // navigation.navigate('CategoryGoals', { categoryId: id, categoryName: name });
   };
+
+  const handleRestaurantCategorySelection = (restaurantCategory: HomeRestaurantCategory | undefined) => {
+    setSelectedRestaurantCategory(restaurantCategory);
+    
+    // 라우터를 사용하여 URL 파라미터 업데이트
+    if (restaurantCategory) {
+      router.setParams({ 
+        category: RestaurantCategoryInfo.getTitle(restaurantCategory) 
+      });
+    } else {
+      router.setParams({ category: undefined });
+    }
+  };
+
+  const restaurantFilterSection = () => (
+    <View style={styles.restaurantCategorySection}>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.restaurantCategoryScrollContainer}
+      >
+        <TouchableOpacity
+          style={[
+            styles.restaurantCategoryTab, 
+            selectedRestaurantCategory === undefined && styles.selectedRestaurantCategoryTab
+          ]}
+          onPress={() => handleRestaurantCategorySelection(undefined)}
+        >
+          <Text style={styles.emojiText}>🔍</Text>
+          <Text style={[
+            styles.restaurantCategoryTabText, 
+            selectedRestaurantCategory === undefined && styles.selectedRestaurantCategoryTabText
+          ]}>
+            전체
+          </Text>
+        </TouchableOpacity>
+        
+        {RestaurantCategoryInfo.allCases().map((cat) => {
+          const isSelected = selectedRestaurantCategory === cat;
+          return (
+            <TouchableOpacity 
+              key={cat}
+              style={[
+                styles.restaurantCategoryTab, 
+                isSelected && styles.selectedRestaurantCategoryTab
+              ]}
+              onPress={() => handleRestaurantCategorySelection(cat)}
+            >
+              <Text style={styles.emojiText}>{RestaurantCategoryInfo.getEmoji(cat)}</Text>
+              <Text style={[
+                styles.restaurantCategoryTabText, 
+                isSelected && styles.selectedRestaurantCategoryTabText
+              ]}>
+                {RestaurantCategoryInfo.getTitle(cat)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
 
   const categoryFilterSection = () => (
     <View style={styles.categorySection}>
@@ -129,7 +193,7 @@ const RestaurantListScreen: React.FC<RestaurantListScreenProps> = ({ category })
 
   return (
     <SafeAreaView style={styles.container}>
-      {categoryFilterSection()}
+      {restaurantFilterSection()}
       {restaurantListSection()}
     </SafeAreaView>
   );
@@ -141,6 +205,45 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#fff',
+    },
+    restaurantCategorySection: {
+        backgroundColor: '#fff',
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+        elevation: 3,
+    },
+    restaurantCategoryScrollContainer: {
+        paddingHorizontal: 15,
+        flexDirection: 'row',
+    },
+    restaurantCategoryTab: {
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        marginHorizontal: 6,
+        borderRadius: 25,
+        backgroundColor: '#f9f9f9',
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#f0f0f0',
+    },
+    selectedRestaurantCategoryTab: {
+        backgroundColor: '#FF6347', // 토마토 레드 컬러
+        borderColor: '#FF6347',
+    },
+    restaurantCategoryTabText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#555',
+        marginLeft: 6,
+    },
+    selectedRestaurantCategoryTabText: {
+        color: '#fff',
     },
     categorySection: {
         padding: 16,
@@ -244,5 +347,9 @@ const styles = StyleSheet.create({
         padding: 20,
         textAlign: 'center',
         color: '#666',
+    },
+    emojiText: {
+        fontSize: 20,
+        marginRight: 6,
     },
 });

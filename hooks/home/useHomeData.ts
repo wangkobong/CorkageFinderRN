@@ -3,6 +3,7 @@ import { useRestaurantStore } from '../../app/store/_restaurantStore';
 import Restaurant, { getSampleRestaurants } from '../../api/models/restaurant';
 import { HomeRestaurantCategory, RestaurantCategoryInfo } from '../../api/models/restaurant_category';
 import { useRouter } from 'expo-router';
+import { RestaurantCard } from '../../api/models/restaurant';
 
 const getRandomRestaurants = (restaurants: Restaurant[], count: number) => {
     const shuffled = [...restaurants].sort(() => 0.5 - Math.random());
@@ -17,6 +18,7 @@ export const useHomeData = () => {
     const [error, setError] = useState<any>(null);
     
     const restaurantData = useRestaurantStore((state: any) => state.restaurants);
+    const setSelectedRestaurant = useRestaurantStore((state: any) => state.setSelectedRestaurant);
     const router = useRouter();
     
     useEffect(() => {
@@ -52,12 +54,26 @@ export const useHomeData = () => {
         });
     }
 
+    const handleRestaurantClick = (restaurant: RestaurantCard) => {
+        // 선택된 레스토랑을 전역 상태에 저장
+        setSelectedRestaurant(restaurant);
+        
+        // 레스토랑 상세 화면으로 이동
+        router.push({
+            pathname: "/home/restaurant-detail",
+            params: {
+                restaurantName: restaurant.name,
+                backButtonTitle: "목록"
+            }
+        });
+    }
     return {
         restaurants,
         randomRestaurants,
         corkageFreeRestaurants,
         loading,
         error,
-        handleCategoryClick
+        handleCategoryClick,
+        handleRestaurantClick
     };
 }

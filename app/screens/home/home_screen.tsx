@@ -5,7 +5,7 @@ import { TitleText } from '../../components/title_text';
 import { HomeRestaurantCategory, RestaurantCategoryInfo } from '../../../api/models/restaurant_category';
 import SectionHeader from '../../components/section_header';
 import Restaurant, {RestaurantCard,  RestaurantCardImpl, getSampleRestaurants } from '../../../api/models/restaurant';
-import RestaurantMiniCardView from './subView/restaurant_mini_card_view';
+import RestaurantMiniCardView from './component/restaurant_mini_card_view';
 import { useRestaurantStore } from '../../store/_restaurantStore';
 import { useHomeData } from '../../../hooks/home/useHomeData';
 
@@ -17,7 +17,8 @@ const HomeScreen = () => {
         corkageFreeRestaurants,
         loading,
         error,
-        handleCategoryClick
+        handleCategoryClick,
+        handleRestaurantClick
     } = useHomeData();
 
     const titleSection = () => {
@@ -74,7 +75,7 @@ const HomeScreen = () => {
                     renderItem={({ item }) => (
                         <RestaurantMiniCardView 
                             restaurant={item} 
-                            onPress={(restaurant) => console.log(`${restaurant.name} 선택됨`)}
+                            onPress={(restaurant) => handleRestaurantClick(restaurant)}
                         />
                     )}
                 />
@@ -96,7 +97,7 @@ const HomeScreen = () => {
                     renderItem={({ item }) => (
                         <RestaurantMiniCardView 
                             restaurant={item} 
-                            onPress={(restaurant) => console.log(`${restaurant.name} 선택됨`)}
+                            onPress={(restaurant) => handleRestaurantClick(restaurant)}
                         />
                     )}
                 />

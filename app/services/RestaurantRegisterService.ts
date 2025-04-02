@@ -74,7 +74,7 @@ export class RestaurantRegisterService {
       
       // Firestore에 데이터 추가
       const docRef = await addDoc(collection(db, "pending"), {
-        id: data.id,
+        restaurantID: data.restaurantID,
         imageURLs: data.imageURLs,
         name: data.name,
         category: data.category, // category는 enum의 rawValue로 저장됨

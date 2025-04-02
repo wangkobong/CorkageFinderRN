@@ -54,6 +54,7 @@ export default function RootLayout() {
       try {
         // 레스토랑 데이터 가져오기
         const restaurantsSnapshot = await getDocs(collection(db, "approved"));
+        
         const restaurantsData = restaurantsSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()

@@ -3,7 +3,7 @@ import { DrinkCategory } from './drink_category';
 import { Comment } from './comment';
 
 export interface RestaurantCard {
-    id: string;
+    restaurantID: string;
     imageURLs: string[];
     name: string;
     category: HomeRestaurantCategory;
@@ -27,7 +27,7 @@ export interface RestaurantCard {
 
 export class RestaurantCardImpl implements RestaurantCard {
     constructor(
-        public id: string,
+        public restaurantID: string,
         public imageURLs: string[],
         public name: string,
         public category: HomeRestaurantCategory,

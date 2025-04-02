@@ -41,6 +41,7 @@ const PendingRestaurantsScreen = () => {
   }, []);
 
   const handleRestaurantPress = (restaurantId: string) => {
+    console.log("handleRestaurantPress restaurantId", restaurantId);
     router.push({
       pathname: "/mypage/pending-restaurant-detail",
       params: { id: restaurantId }
@@ -60,7 +61,7 @@ const PendingRestaurantsScreen = () => {
       <SafeAreaView style={styles.container}>
         <Text style={styles.errorText}>오류: {error}</Text>
       </SafeAreaView>
-    );
+    ); 
   }
 
   return (

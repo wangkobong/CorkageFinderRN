@@ -9,6 +9,7 @@ import { TitleText } from '../../components/title_text';
 
 // 상세 정보 타입
 interface PendingRestaurantDetail extends RestaurantCard {
+  id: string;
   submittedBy?: string;
   submittedAt?: string;
   notes?: string;
@@ -25,6 +26,7 @@ const PendingRestaurantDetailScreen = () => {
 
   useEffect(() => {
     const fetchRestaurantDetail = async () => {
+      console.log("restaurantId", restaurantId);
       try {
         if (!restaurantId) {
           setError('식당 ID가 없습니다.');

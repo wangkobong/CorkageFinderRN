@@ -1,17 +1,36 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { RestaurantCard } from '../../../../api/models/restaurant';
 import { RestaurantCategoryInfo } from '../../../../api/models/restaurant_category';
 import { HomeRestaurantCategory } from '../../../../api/models/restaurant_category';
+import { useRouter } from 'expo-router';
+import { useRestaurantStore } from '@/app/store/_index';
+
 
 interface RestaurantMiniCardProps {
     restaurant: Partial<RestaurantCard>;
     onPress?: (restaurant: RestaurantCard) => void;
 }
 
-const RestaurantMapCard: React.FC<RestaurantMiniCardProps> = ({ restaurant }) => {
+const RestaurantMapCard: React.FC<RestaurantMiniCardProps> = ({ restaurant, onPress }) => {
+    const router = useRouter();
+    const setSelectedRestaurant = useRestaurantStore((state: any) => state.setSelectedRestaurant);
+
+    const handlePress = () => {
+        if (onPress && restaurant as RestaurantCard) {
+            onPress(restaurant as RestaurantCard);
+        } else {
+            setSelectedRestaurant(restaurant);
+
+            router.push({
+                pathname: '/home/restaurant-detail',
+                params: { restaurantName: restaurant.name, backButtonTitle: '내 주변' }
+            });
+        }   
+    };
+
     return (
-        <View style={styles.container}>
+        <TouchableOpacity style={styles.container} onPress={handlePress} activeOpacity={0.8}>
             <Image source={{ uri: restaurant.imageURLs?.[0] || 'https://via.placeholder.com/150' }} style={styles.image} />
             <View style={styles.infoContainer}>
                 <Text style={styles.name}>🍽️ {restaurant.name}</Text>
@@ -19,7 +38,7 @@ const RestaurantMapCard: React.FC<RestaurantMiniCardProps> = ({ restaurant }) =>
                 <Text style={styles.phone}>📞 {restaurant.phoneNumber}</Text>
                 <Text style={styles.address}>📍 {restaurant.address}</Text>
             </View>
-        </View>
+        </TouchableOpacity>
     );
 };
 

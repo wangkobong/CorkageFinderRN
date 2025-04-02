@@ -530,8 +530,12 @@ const RegisterScreen = () => {
             // 4. 레스토랑 데이터 객체 생성
             const categoryEnum = getCategoryEnum();
             
+            // 타임스탬프 기반 ID 생성 (현재 시간의 밀리초 단위)
+            const timestampId = Date.now().toString();
+            
             // RestaurantCardImpl 생성자를 사용하여 RestaurantCard 객체 생성
             const restaurantData: RestaurantCard = new RestaurantCardImpl(
+                timestampId, // 타임스탬프 기반 ID 사용
                 imageURLs,
                 restaurantName,
                 categoryEnum,
@@ -549,10 +553,11 @@ const RegisterScreen = () => {
                 longitude,
                 isBreakTimeEnabled,
                 isBreakTimeEnabled ? breakTime : '',
-                selectedDrinkCategories // 선택된 음료 카테고리 배열
+                selectedDrinkCategories,
+                [] // 선택된 음료 카테고리 배열
             );
             
-            // 5. Firestore에 레스토랑 데이터 저장
+            // 5. Firestore에 레스토랑 데이터 저장 (이제 id 필드에 timestampId가 포함됨)
             await RestaurantRegisterService.addRestaurant(restaurantData);
             
             // 성공 처리

@@ -9,7 +9,6 @@ import { TitleText } from '../../components/title_text';
 
 // 상세 정보 타입
 interface PendingRestaurantDetail extends RestaurantCard {
-  id: string;
   submittedBy?: string;
   submittedAt?: string;
   notes?: string;

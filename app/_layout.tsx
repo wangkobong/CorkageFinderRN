@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Zustand 스토어 import
 import { useRestaurantStore } from './store/_restaurantStore';
+import { useAuthStore } from './store/_authStore';
 
 // Firebase 초기화
 const app = initializeApp(firebaseConfig);
@@ -35,8 +36,11 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
   
-    // Zustand 스토어에서 데이터 설정 함수 가져오기
-    const setRestaurants = useRestaurantStore((state: any) => state.setRestaurants);
+  // Zustand 스토어에서 데이터 설정 함수 가져오기
+  const setRestaurants = useRestaurantStore((state: any) => state.setRestaurants);
+  
+  // Auth 스토어에서 initialize 함수 가져오기
+  const initializeAuth = useAuthStore((state) => state.initialize);
 
   useEffect(() => {
     if (loaded) {
@@ -67,17 +71,19 @@ export default function RootLayout() {
     fetchData();
   }, []);
 
-
-  // Firebase 인증 상태 리스너 활성화 (필요한 경우)
-  // useEffect(() => {
-  //   const unsubscribe = onAuthStateChanged(auth, (user) => {
-  //     // 인증 상태 변경 처리 로직
-  //     console.log('Auth state changed:', user ? 'User logged in' : 'User logged out');
-  //   });
-
-  //   // 컴포넌트 언마운트 시 리스너 해제
-  //   return () => unsubscribe();
-  // }, []);
+  // 인증 스토어 초기화
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        await initializeAuth();
+        console.log('인증 스토어가 초기화되었습니다.');
+      } catch (error) {
+        console.error('인증 스토어 초기화 중 오류:', error);
+      }
+    };
+    
+    initAuth();
+  }, []);
 
   if (!loaded) {
     return null;

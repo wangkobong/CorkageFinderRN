@@ -1,9 +1,46 @@
 import { useState, useEffect } from 'react';
 import { Platform, Linking, NativeSyntheticEvent, NativeScrollEvent, Dimensions } from 'react-native';
 import { useRestaurantStore } from '../../app/store/_restaurantStore';
+import { useAuthStore } from '../../app/store/_authStore';
 import { Comment } from '../../api/models/comment';
 
 const { width } = Dimensions.get('window');
+
+// 상대적 시간 포맷팅 함수
+const formatRelativeTime = (dateString: string): string => {
+    const now = new Date();
+    const commentDate = new Date(dateString);
+    const diffMs = now.getTime() - commentDate.getTime();
+    
+    // 시간 차이 계산 (초, 분, 시간, 일)
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+    
+    // 상대적 시간 표시 로직
+    if (diffSec < 10) {
+        return '방금 전';
+    } else if (diffSec < 60) {
+        return `${diffSec}초 전`;
+    } else if (diffMin < 60) {
+        return `${diffMin}분 전`;
+    } else if (diffHour < 24) {
+        return `${diffHour}시간 전`;
+    } else if (diffDay < 7) {
+        return `${diffDay}일 전`;
+    } else if (diffDay < 30) {
+        return `${Math.floor(diffDay / 7)}주 전`;
+    } else if (diffDay < 365) {
+        return `${Math.floor(diffDay / 30)}개월 전`;
+    } else {
+        // 1년 이상 지난 경우 날짜 표시
+        const year = commentDate.getFullYear();
+        const month = String(commentDate.getMonth() + 1).padStart(2, '0');
+        const day = String(commentDate.getDate()).padStart(2, '0');
+        return `${year}.${month}.${day}`;
+    }
+};
 
 export const useRestaurantDetailData = () => {
     // 전역 상태에서 선택된 레스토랑 정보를 가져옴
@@ -11,21 +48,30 @@ export const useRestaurantDetailData = () => {
     const resetSelectedRestaurant = useRestaurantStore((state) => state.resetSelectedRestaurant);
     const [activeImageIndex, setActiveImageIndex] = useState(0);
     
+    // 인증 스토어에서 로그인 상태 가져오기
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+    
     // 댓글 관련 상태
     const [comments, setComments] = useState<Comment[]>([]);
     const [commentText, setCommentText] = useState('');
-    const [isLoggedIn, setIsLoggedIn] = useState(false); // 로그인 상태 (임시로 false로 설정)
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     useEffect(() => {
         // 컴포넌트가 마운트될 때 선택된 레스토랑 정보를 로그로 출력
         console.log('선택된 레스토랑 정보:', selectedRestaurant);
+        
+        // 인증 상태 확인하고 로그 출력
+        console.log('레스토랑 상세 화면 - 로그인 상태:', isAuthenticated);
+        
+        // isLoggedIn 상태 업데이트
+        setIsLoggedIn(isAuthenticated);
 
         // 컴포넌트가 언마운트될 때 선택된 레스토랑 상태 초기화
         return () => {
             console.log('레스토랑 상세 화면 이탈 - 상태 초기화');
             resetSelectedRestaurant();
         };
-    }, []);
+    }, [isAuthenticated]);
 
     // 전화 걸기 기능
     const handlePhoneCall = () => {
@@ -97,6 +143,7 @@ export const useRestaurantDetailData = () => {
         handleOpenMap,
         handleImageScroll,
         handleCommentSubmit,
-        setCommentText
+        setCommentText,
+        formatRelativeTime
     };
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Stack } from 'expo-router';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';  
 import { TitleText } from '../../components/title_text';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,9 @@ import { signInWithCredential, GoogleAuthProvider, signOut, onAuthStateChanged, 
 import { statusCodes } from '@react-native-google-signin/google-signin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, router } from 'expo-router';
+
+// 인증 스토어 import
+import { useAuthStore } from '../../store/_authStore';
 
 // 미리 컴포넌트 import
 import PendingRestaurantsScreen from './peding_restaurants.screen';
@@ -23,83 +26,33 @@ GoogleSignin.configure({
 const MyPageScreen = () => {
     const router = useRouter();
 
-    // 로그인 상태 관리
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    // 로딩 상태 관리
-    const [loading, setLoading] = useState(true);
-    // 사용자 정보 상태 관리
+    // 인증 스토어에서 상태와 메서드 가져오기
+    const { 
+        isAuthenticated, 
+        user, 
+        isLoading, 
+        error, 
+        googleLogin, 
+        logout 
+    } = useAuthStore();
+
+    // 사용자 정보 상태 관리 (표시용)
     const [userInfo, setUserInfo] = useState({
         name: '',
         email: '',
         profileImage: '',
     });
 
-    // 컴포넌트 마운트 시 인증 상태 확인
-    useEffect(() => {        
-        // AsyncStorage에서 로그인 상태 확인
-        const checkLoginStatus = async () => {
-            try {
-                const isUserLoggedIn = await AsyncStorage.getItem('user_logged_in');
-                const userJson = await AsyncStorage.getItem('user');
-                
-                if (isUserLoggedIn === 'true' && userJson) {
-                    console.log('AsyncStorage에서 로그인 상태 확인됨');
-                    const userData = JSON.parse(userJson);
-                    setIsLoggedIn(true);
-                    setUserInfo({
-                        name: userData.displayName || '사용자',
-                        email: userData.email || '',
-                        profileImage: userData.photoURL || 'https://via.placeholder.com/100',
-                    });
-                } else {
-                    console.log('AsyncStorage에 로그인 정보 없음');
-                }
-                
-                setLoading(false);
-            } catch (error) {
-                console.error('로그인 상태 확인 중 오류:', error);
-                setLoading(false);
-            }
-        };
-        
-        // 로그인 상태 확인 실행
-        checkLoginStatus();
-        
-        // Firebase 인증 상태 리스너
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                // 사용자가 로그인한 경우
-                setIsLoggedIn(true);
-                updateUserInfo(user);
-                console.log('사용자 로그인 상태 확인됨:', user.email);
-                console.log('사용자 UID:', user.uid);
-            } else {
-                // 사용자가 로그아웃한 경우
-                // AsyncStorage 확인 후 상태 업데이트 (이미 위에서 처리됨)
-                console.log('Firebase에서 로그인 상태 아님');
-            }
-        });
-
-        // 컴포넌트 언마운트 시 리스너 해제
-        return () => unsubscribe();
-    }, []);
-
-    // 사용자 정보 업데이트 함수
-    const updateUserInfo = (user: User) => {
-        setUserInfo({
-            name: user.displayName || '사용자',
-            email: user.email || '',
-            profileImage: user.photoURL || 'https://via.placeholder.com/100',
-        });
-
-        // 필요한 경우 사용자 정보를 AsyncStorage에 저장
-        AsyncStorage.setItem('user', JSON.stringify({
-            uid: user.uid,
-            displayName: user.displayName,
-            email: user.email,
-            photoURL: user.photoURL,
-        }));
-    };
+    // 사용자 정보 업데이트
+    useEffect(() => {
+        if (user) {
+            setUserInfo({
+                name: user.displayName || '사용자',
+                email: user.email || '',
+                profileImage: user.photoURL || 'https://via.placeholder.com/100',
+            });
+        }
+    }, [user]);
 
     // 메뉴 항목 렌더링 함수
     const renderMenuItem = (icon: string, title: string, onPress: () => void) => (
@@ -110,104 +63,26 @@ const MyPageScreen = () => {
         </TouchableOpacity>
     );
 
-    // 로그인 처리 함수 수정
+    // 구글 로그인 핸들러
     const handleGoogleLogin = async () => {
-        console.log('구글로그인 시도');
-        console.log('클라이언트 ID 정보:');
-        console.log('웹 클라이언트 ID:', process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID);
-        console.log('iOS 클라이언트 ID:', process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID);
-      
-        try {
-          // Google Play 서비스 확인 (Android에서 필요)
-          await GoogleSignin.hasPlayServices();
-      
-          // Google 로그인 요청
-          const googleUserInfo = await GoogleSignin.signIn();
-          console.log('구글 로그인 성공, 사용자 정보:', googleUserInfo);
-      
-          // ID 토큰 가져오기
-          const idToken = googleUserInfo.data?.idToken
-          if (!idToken) {
-            throw new Error('ID 토큰을 가져올 수 없습니다.');
-          }
-      
-          // 파이어베이스 인증 크리덴셜 생성
-          const googleCredential = GoogleAuthProvider.credential(idToken);
-      
-          // 파이어베이스로 로그인
-          const userCredential = await signInWithCredential(auth, googleCredential);
-          console.log('파이어베이스 로그인 성공:', userCredential.user);
-      
-          // 로그인 상태 및 사용자 정보 저장
-          setIsLoggedIn(true);
-          updateUserInfo(userCredential.user);
-          
-          // 로그인 토큰 저장
-          await AsyncStorage.setItem('auth_token', idToken);
-          await AsyncStorage.setItem('user_logged_in', 'true');
-          
-          console.log('로그인 정보가 AsyncStorage에 저장되었습니다.');
-      
-          // 인증 상태 리스너에서 자동으로 상태 업데이트됨
-          // 추가 작업이 필요한 경우 여기에 작성
-        } catch (error) {
-          console.error('구글 로그인 중 오류:', error);
-          if (error && typeof error === 'object' && 'code' in error) {
-            if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-              console.log('사용자가 로그인을 취소했습니다.');
-            } else if (error.code === statusCodes.IN_PROGRESS) {
-              console.log('로그인 진행 중입니다.');
-            } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-              console.log('Google Play 서비스를 사용할 수 없습니다.');
-            } else {
-              // message 속성 존재 여부 확인
-              const errorMessage = 'message' in error ? error.message : '상세 정보 없음';
-              console.log('알 수 없는 오류:', errorMessage);
-              console.log(error.code);
-            }
-          } else {
-            console.log('알 수 없는 오류 형식:', error);
-          }
-        }
-      };
+        await googleLogin();
+    };
 
-      // 로그아웃 처리 함수
-      const handleLogout = async () => {
-        try {
-            // Google 로그인 해제
-            await GoogleSignin.signOut();
-            // Firebase 로그아웃
-            await signOut(auth);
-            
-            // AsyncStorage에서 모든 인증 관련 데이터 삭제
-            await AsyncStorage.removeItem('user');
-            await AsyncStorage.removeItem('auth_token');
-            await AsyncStorage.removeItem('user_logged_in');
-            
-            // 상태 업데이트
-            setIsLoggedIn(false);
-            setUserInfo({
-                name: '',
-                email: '',
-                profileImage: '',
-            });
-            
-            console.log('로그아웃 성공 및 모든 세션 데이터 삭제됨');
-        } catch (error) {
-            console.error('로그아웃 중 오류:', error);
-        }
-      };
+    // 로그아웃 핸들러
+    const handleLogout = async () => {
+        await logout();
+    };
 
-      const handleAppleLogin = async () => {
+    const handleAppleLogin = async () => {
         console.log('애플로그인 시도');
-      };
+    };
 
-      // 승인하기 버튼 처리 함수
-      const handleApprove = () => {
+    // 승인하기 버튼 처리 함수
+    const handleApprove = () => {
         console.log('승인하기 버튼 클릭됨');
         // 올바른 라우팅 경로 사용 (이제 파일 이름이 mypage/pending-restaurants.tsx로 생성됨)
         router.push("/mypage/pending-restaurants");
-      };
+    };
 
     // 로그인 화면 렌더링
     const renderLoginScreen = () => (
@@ -241,7 +116,11 @@ const MyPageScreen = () => {
 
     // 마이페이지 화면 렌더링
     const renderMyPageScreen = () => (
-        <ScrollView style={styles.scrollView}>
+        <ScrollView 
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollViewContent}
+            showsVerticalScrollIndicator={false}
+        >
             {/* 프로필 섹션 */}
             <View style={styles.profileSection}>
                 {userInfo.profileImage ? (
@@ -260,7 +139,7 @@ const MyPageScreen = () => {
                     <Text style={styles.userName}>{userInfo.name || '로그인이 필요합니다'}</Text>
                     <Text style={styles.userEmail}>{userInfo.email}</Text>
                 </View>
-                {isLoggedIn && (
+                {isAuthenticated && (
                     <TouchableOpacity style={styles.editButton}>
                         <Text style={styles.editButtonText}>수정</Text>
                     </TouchableOpacity>
@@ -313,7 +192,7 @@ const MyPageScreen = () => {
     );
 
     // 로딩 중일 때는 로딩 화면 표시
-    if (loading) {
+    if (isLoading) {
         return (
             <SafeAreaView style={styles.container}>
                 <View style={styles.header}>
@@ -327,13 +206,13 @@ const MyPageScreen = () => {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['top']}>
             <View style={styles.header}>
                 <TitleText>마이페이지</TitleText>
             </View>
             
             {/* 로그인 상태에 따라 다른 화면 표시 */}
-            {isLoggedIn ? renderMyPageScreen() : renderLoginScreen()}
+            {isAuthenticated ? renderMyPageScreen() : renderLoginScreen()}
         </SafeAreaView>
     );
 };
@@ -341,7 +220,7 @@ const MyPageScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f8f8',
+        backgroundColor: '#fff',
     },
     header: {
         paddingHorizontal: 20,
@@ -350,6 +229,11 @@ const styles = StyleSheet.create({
     },
     scrollView: {
         flex: 1,
+        backgroundColor: '#fff',
+    },
+    scrollViewContent: {
+        flexGrow: 1,
+        paddingBottom: 0,
     },
     profileSection: {
         flexDirection: 'row',
@@ -415,7 +299,9 @@ const styles = StyleSheet.create({
         color: '#333',
     },
     logoutButton: {
-        margin: 20,
+        marginHorizontal: 20,
+        marginTop: 20,
+        marginBottom: 0,
         padding: 15,
         borderRadius: 8,
         backgroundColor: '#f0f0f0',

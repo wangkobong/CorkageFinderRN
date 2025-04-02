@@ -5,6 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { RestaurantCategoryInfo } from '../../../api/models/restaurant_category';
 import { useRestaurantDetailData } from '../../../hooks/common/useRestaurantDetailData';
 import { DRINK_CATEGORIES } from '../../../api/models/drink_category';
+import { useAuthStore } from '../../../app/store/_authStore';
 
 const { width } = Dimensions.get('window');
 
@@ -22,7 +23,8 @@ const RestaurantDetailScreen = () => {
         handleOpenMap,
         handleImageScroll,
         handleCommentSubmit,
-        setCommentText
+        setCommentText,
+        formatRelativeTime
     } = useRestaurantDetailData();
 
     const imageSection = () => {
@@ -249,7 +251,7 @@ const RestaurantDetailScreen = () => {
                                         </View>
                                     )}
                                     <Text style={styles.commentUserName}>{comment.userName}</Text>
-                                    <Text style={styles.commentDate}>{comment.createdAt}</Text>
+                                    <Text style={styles.commentDate}>{formatRelativeTime(comment.createdAt)}</Text>
                                 </View>
                                 <Text style={styles.commentContent}>{comment.content}</Text>
                             </View>
@@ -612,6 +614,11 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#999',
         marginLeft: 'auto',
+        fontWeight: '400',
+        backgroundColor: '#f6f6f6',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 12,
     },
     commentContent: {
         fontSize: 14,

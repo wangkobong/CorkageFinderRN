@@ -11,17 +11,26 @@ import { useRestaurantStore } from '@/app/store/_restaurantStore';
 interface RestaurantListScreenProps {
   category?: HomeRestaurantCategory;
   showFilterButton?: boolean;
+  sortOption?: SortOption;
 }
 
 const RestaurantListScreen: React.FC<RestaurantListScreenProps> = ({ 
   category,
-  showFilterButton = false
+  showFilterButton = false,
+  sortOption
 }) => {
   const [selectedRestaurantCategory, setSelectedRestaurantCategory] = useState<HomeRestaurantCategory | undefined>(category);
   const [menuVisible, setMenuVisible] = useState(false);
   const { restaurants, loading, error, setSorting } = useRestaurantListData(selectedRestaurantCategory);
   const router = useRouter();
   const setSelectedRestaurant = useRestaurantStore((state: any) => state.setSelectedRestaurant);
+
+  // sortOption prop이 변경되면 정렬 적용
+  useEffect(() => {
+    if (sortOption) {
+      setSorting(sortOption);
+    }
+  }, [sortOption, setSorting]);
 
   // 필터 버튼을 눌렀을 때 실행될 함수
   const handleFilterPress = () => {
@@ -66,49 +75,54 @@ const RestaurantListScreen: React.FC<RestaurantListScreenProps> = ({
 
   const restaurantFilterSection = () => (
     <View style={styles.restaurantCategorySection}>
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.restaurantCategoryScrollContainer}
-      >
-        <TouchableOpacity
-          style={[
-            styles.restaurantCategoryTab, 
-            selectedRestaurantCategory === undefined && styles.selectedRestaurantCategoryTab
-          ]}
-          onPress={() => handleRestaurantCategorySelection(undefined)}
+      <View style={{ flex: 1 }}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.restaurantCategoryScrollContainer}
+          bounces={true}
+          alwaysBounceHorizontal={false}
+          snapToAlignment="center"
         >
-          <Text style={styles.emojiText}>🔍</Text>
-          <Text style={[
-            styles.restaurantCategoryTabText, 
-            selectedRestaurantCategory === undefined && styles.selectedRestaurantCategoryTabText
-          ]}>
-            전체
-          </Text>
-        </TouchableOpacity>
-        
-        {RestaurantCategoryInfo.allCases().map((cat) => {
-          const isSelected = selectedRestaurantCategory === cat;
-          return (
-            <TouchableOpacity 
-              key={cat}
-              style={[
-                styles.restaurantCategoryTab, 
-                isSelected && styles.selectedRestaurantCategoryTab
-              ]}
-              onPress={() => handleRestaurantCategorySelection(cat)}
-            >
-              <Text style={styles.emojiText}>{RestaurantCategoryInfo.getEmoji(cat)}</Text>
-              <Text style={[
-                styles.restaurantCategoryTabText, 
-                isSelected && styles.selectedRestaurantCategoryTabText
-              ]}>
-                {RestaurantCategoryInfo.getTitle(cat)}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+          <TouchableOpacity
+            style={[
+              styles.restaurantCategoryTab, 
+              selectedRestaurantCategory === undefined && styles.selectedRestaurantCategoryTab
+            ]}
+            onPress={() => handleRestaurantCategorySelection(undefined)}
+          >
+            <Text style={styles.emojiText}>🔍</Text>
+            <Text style={[
+              styles.restaurantCategoryTabText, 
+              selectedRestaurantCategory === undefined && styles.selectedRestaurantCategoryTabText
+            ]}>
+              전체
+            </Text>
+          </TouchableOpacity>
+          
+          {RestaurantCategoryInfo.allCases().map((cat) => {
+            const isSelected = selectedRestaurantCategory === cat;
+            return (
+              <TouchableOpacity 
+                key={cat}
+                style={[
+                  styles.restaurantCategoryTab, 
+                  isSelected && styles.selectedRestaurantCategoryTab
+                ]}
+                onPress={() => handleRestaurantCategorySelection(cat)}
+              >
+                <Text style={styles.emojiText}>{RestaurantCategoryInfo.getEmoji(cat)}</Text>
+                <Text style={[
+                  styles.restaurantCategoryTabText, 
+                  isSelected && styles.selectedRestaurantCategoryTabText
+                ]}>
+                  {RestaurantCategoryInfo.getTitle(cat)}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
       
       {showFilterButton && (
         <TouchableOpacity 
@@ -259,16 +273,17 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        zIndex: 1,
     },
     restaurantCategoryScrollContainer: {
         paddingHorizontal: 15,
         flexDirection: 'row',
-        flex: 1,
     },
     restaurantCategoryTab: {
         paddingVertical: 10,
         paddingHorizontal: 16,
-        marginHorizontal: 6,
+        marginRight: 10,
+        marginLeft: 2,
         borderRadius: 25,
         backgroundColor: '#f9f9f9',
         flexDirection: 'row',
@@ -297,6 +312,8 @@ const styles = StyleSheet.create({
         marginRight: 15,
         borderRadius: 20,
         backgroundColor: '#f5f5f5',
+        minWidth: 70,
+        justifyContent: 'center',
     },
     filterButtonText: {
         marginLeft: 5,

@@ -1,92 +1,42 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Linking, Platform, FlatList, Dimensions, NativeSyntheticEvent, NativeScrollEvent, StatusBar } from 'react-native';
-import { useRestaurantStore } from '../../store/_restaurantStore';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Linking, Platform, FlatList, Dimensions, StatusBar, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather, MaterialIcons, FontAwesome, Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { RestaurantCategoryInfo } from '../../../api/models/restaurant_category';
+import { useRestaurantDetailData } from '../../../hooks/common/useRestaurantDetailData';
+import { DRINK_CATEGORIES } from '../../../api/models/drink_category';
 
 const { width } = Dimensions.get('window');
 
 const RestaurantDetailScreen = () => {
-    // 전역 상태에서 선택된 레스토랑 정보를 가져옴
-    const selectedRestaurant = useRestaurantStore((state) => state.selectedRestaurant);
-    const resetSelectedRestaurant = useRestaurantStore((state) => state.resetSelectedRestaurant);
-    const [activeImageIndex, setActiveImageIndex] = useState(0);
+    // useRestaurantDetailData 훅 사용
+    const {
+        selectedRestaurant,
+        imageUrls,
+        hasMultipleImages,
+        activeImageIndex,
+        comments,
+        commentText,
+        isLoggedIn,
+        handlePhoneCall,
+        handleOpenMap,
+        handleImageScroll,
+        handleCommentSubmit,
+        setCommentText
+    } = useRestaurantDetailData();
 
-    useEffect(() => {
-        // 컴포넌트가 마운트될 때 선택된 레스토랑 정보를 로그로 출력
-        console.log('선택된 레스토랑 정보:', selectedRestaurant);
-
-        // 컴포넌트가 언마운트될 때 선택된 레스토랑 상태 초기화
-        return () => {
-            console.log('레스토랑 상세 화면 이탈 - 상태 초기화');
-            resetSelectedRestaurant();
-        };
-    }, []);
-
-    // 전화 걸기 기능
-    const handlePhoneCall = () => {
-        if (selectedRestaurant?.phoneNumber) {
-            Linking.openURL(`tel:${selectedRestaurant.phoneNumber}`);
-        }
-    };
-
-    // 지도 앱 열기 기능
-    const handleOpenMap = () => {
-        if (selectedRestaurant?.latitude && selectedRestaurant?.longitude) {
-            const scheme = Platform.select({ ios: 'maps://0,0?q=', android: 'geo:0,0?q=' });
-            const latLng = `${selectedRestaurant.latitude},${selectedRestaurant.longitude}`;
-            const label = selectedRestaurant.name;
-            const url = Platform.select({
-                ios: `${scheme}${label}@${latLng}`,
-                android: `${scheme}${latLng}(${label})`
-            });
-
-            if (url) {
-                Linking.openURL(url);
-            }
-        }
-    };
-
-    // 이미지 변경 이벤트 핸들러
-    const handleImageScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-        const slideIndex = Math.round(event.nativeEvent.contentOffset.x / width);
-        setActiveImageIndex(slideIndex);
-    };
-
-    // 선택된 레스토랑이 없는 경우 처리
-    if (!selectedRestaurant) {
+    const imageSection = () => {
+        if (!selectedRestaurant) return null;
+        
         return (
-            <SafeAreaView style={styles.container}>
-                <View style={styles.noDataContainer}>
-                    <Feather name="alert-circle" size={50} color="#ccc" />
-                    <Text style={styles.noDataText}>레스토랑 정보를 불러올 수 없습니다.</Text>
-                </View>
-            </SafeAreaView>
-        );
-    }
-
-    // 이미지 배열 준비 (없으면 기본 이미지 표시)
-    const imageUrls = selectedRestaurant.imageURLs && selectedRestaurant.imageURLs.length > 0 
-        ? selectedRestaurant.imageURLs 
-        : ['https://via.placeholder.com/400x200?text=No+Image'];
-    
-    // 이미지가 여러 개인지 확인
-    const hasMultipleImages = imageUrls.length > 1;
-
-    return (
-        <View style={styles.container}>
-            <StatusBar barStyle="light-content" />
-            
-            {/* 헤더 이미지 슬라이더 - SafeAreaView 바깥에 배치 */}
             <View style={styles.imageSliderContainer}>
                 <FlatList
                     data={imageUrls}
                     horizontal
                     pagingEnabled
-                    scrollEnabled={hasMultipleImages} // 이미지가 1개일 때는 스크롤 비활성화
+                    scrollEnabled={hasMultipleImages}
                     showsHorizontalScrollIndicator={false}
-                    onScroll={hasMultipleImages ? handleImageScroll : undefined} // 이미지가 1개일 때는 스크롤 이벤트 비활성화
+                    onScroll={hasMultipleImages ? handleImageScroll : undefined}
                     renderItem={({ item }) => (
                         <Image 
                             source={{ uri: item }} 
@@ -117,13 +67,14 @@ const RestaurantDetailScreen = () => {
                     </Text>
                 </View>
             </View>
-            
-            <ScrollView 
-                style={styles.scrollView}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-                contentInsetAdjustmentBehavior="never"
-            >
+        );
+    };
+
+    const mainInfoSection = () => {
+        if (!selectedRestaurant) return null;
+        
+        return (
+            <>
                 {/* 레스토랑 기본 정보 */}
                 <View style={styles.restaurantInfoSection}>
                     <Text style={styles.restaurantName}>{selectedRestaurant.name}</Text>
@@ -159,25 +110,96 @@ const RestaurantDetailScreen = () => {
                         <Text style={styles.actionButtonText}>저장</Text>
                     </TouchableOpacity>
                 </View>
+            </>
+        );
+    };
 
-                {/* 콜키지 정보 */}
-                <View style={styles.infoCard}>
-                    <View style={styles.cardHeader}>
-                        <Feather name="shopping-bag" size={22} color="#F9A826" />
-                        <Text style={styles.cardTitle}>콜키지 정보</Text>
+    const corkageInfoSection = () => {
+        if (!selectedRestaurant) return null;
+        
+        // 콜키지 비용 표시를 위한 함수 (가격에 콤마 추가)
+        const formatCorkageFee = (fee: string) => {
+            // 숫자만 추출
+            const numberOnly = fee.replace(/[^0-9]/g, '');
+            if (!numberOnly) return fee;
+            
+            // 숫자에 콤마 추가
+            const formatted = Number(numberOnly).toLocaleString();
+            
+            // 원본 문자열에서 숫자를 포맷된 숫자로 교체
+            return fee.replace(numberOnly, formatted);
+        };
+        
+        return (
+            <View style={styles.infoCard}>
+                <View style={styles.cardHeader}>
+                    <Feather name="shopping-bag" size={22} color="#F9A826" />
+                    <Text style={styles.cardTitle}>콜키지 정보</Text>
+                </View>
+                
+                {/* 콜키지 무료/비용 정보 */}
+                <View style={styles.corkageStatusContainer}>
+                    <View style={[
+                        styles.corkageBadge,
+                        selectedRestaurant.isCorkageFree ? styles.corkageFreeBadge : styles.corkageFeeBadge
+                    ]}>
+                        <Text style={[
+                            styles.corkageBadgeText,
+                            selectedRestaurant.isCorkageFree ? styles.corkageFreeBadgeText : styles.corkageFeeBadgeText
+                        ]}>
+                            {selectedRestaurant.isCorkageFree ? '무료' : '유료'}
+                        </Text>
                     </View>
-                    <Text style={[styles.corkageText, selectedRestaurant.isCorkageFree ? styles.corkageFree : {}]}>
-                        {selectedRestaurant.isCorkageFree ? '✓ 콜키지 무료' : `콜키지 비용: ${selectedRestaurant.corkageFee}`}
-                    </Text>
-                    {selectedRestaurant.corkageNote && (
-                        <View style={styles.noteContainer}>
-                            <Text style={styles.noteTitle}>추가 안내사항:</Text>
-                            <Text style={styles.noteText}>{selectedRestaurant.corkageNote}</Text>
+                    
+                    {selectedRestaurant.isCorkageFree ? (
+                        <Text style={[styles.corkageText, styles.corkageFree]}>
+                            콜키지 비용이 무료입니다
+                        </Text>
+                    ) : (
+                        <View style={styles.corkageFeeContainer}>
+                            <Text style={styles.corkageText}>콜키지 비용:</Text>
+                            <Text style={styles.corkageFeeText}>
+                                {formatCorkageFee(selectedRestaurant.corkageFee)}
+                            </Text>
                         </View>
                     )}
                 </View>
+                
+                {/* 추가 안내사항 */}
+                {selectedRestaurant.corkageNote && (
+                    <View style={styles.noteContainer}>
+                        <Text style={styles.noteTitle}>추가 안내사항:</Text>
+                        <Text style={styles.noteText}>{selectedRestaurant.corkageNote}</Text>
+                    </View>
+                )}
+                
+                {/* 취급 음료 카테고리 */}
+                {selectedRestaurant.drinkCategories && selectedRestaurant.drinkCategories.length > 0 && (
+                    <View style={styles.drinkCategorySection}>
+                        <Text style={styles.drinkCategoryTitle}>취급 음료</Text>
+                        <View style={styles.drinkCategoriesContainer}>
+                            {selectedRestaurant.drinkCategories.map((category, index) => {
+                                const drinkInfo = DRINK_CATEGORIES.find(c => c.id === category);
+                                return (
+                                    <View key={index} style={styles.drinkCategoryTag}>
+                                        <Text style={styles.drinkCategoryText}>
+                                            {drinkInfo?.emoji} {drinkInfo?.title || category}
+                                        </Text>
+                                    </View>
+                                );
+                            })}
+                        </View>
+                    </View>
+                )}
+            </View>
+        );
+    };
 
-                {/* 영업 정보 */}
+    const businessInfoSection = () => {
+        if (!selectedRestaurant) return null;
+        
+        return (
+            <>
                 <View style={styles.infoCard}>
                     <View style={styles.cardHeader}>
                         <Feather name="clock" size={22} color="#F9A826" />
@@ -198,23 +220,116 @@ const RestaurantDetailScreen = () => {
                         <Text style={styles.infoValue}>{selectedRestaurant.closedDays || '정보 없음'}</Text>
                     </View>
                 </View>
+            </>
+        );
+    };
 
-                {/* 취급 음료 카테고리 */}
-                {selectedRestaurant.drinkCategories && selectedRestaurant.drinkCategories.length > 0 && (
-                    <View style={styles.infoCard}>
-                        <View style={styles.cardHeader}>
-                            <Feather name="info" size={22} color="#F9A826" />
-                            <Text style={styles.cardTitle}>취급 음료</Text>
-                        </View>
-                        <View style={styles.drinkCategoriesContainer}>
-                            {selectedRestaurant.drinkCategories.map((category, index) => (
-                                <View key={index} style={styles.drinkCategoryTag}>
-                                    <Text style={styles.drinkCategoryText}>{category}</Text>
+    const commentSection = () => {
+        return (
+            <View style={styles.infoCard}>
+                <View style={styles.cardHeader}>
+                    <Feather name="message-circle" size={22} color="#F9A826" />
+                    <Text style={styles.cardTitle}>방문자 댓글</Text>
+                </View>
+                
+                {/* 댓글 목록 */}
+                {comments.length > 0 ? (
+                    <View style={styles.commentsContainer}>
+                        {comments.map((comment) => (
+                            <View key={comment.id} style={styles.commentItem}>
+                                <View style={styles.commentHeader}>
+                                    {comment.userProfileImage ? (
+                                        <Image 
+                                            source={{ uri: comment.userProfileImage }} 
+                                            style={styles.commentUserImage} 
+                                        />
+                                    ) : (
+                                        <View style={styles.commentUserImagePlaceholder}>
+                                            <Feather name="user" size={14} color="#999" />
+                                        </View>
+                                    )}
+                                    <Text style={styles.commentUserName}>{comment.userName}</Text>
+                                    <Text style={styles.commentDate}>{comment.createdAt}</Text>
                                 </View>
-                            ))}
-                        </View>
+                                <Text style={styles.commentContent}>{comment.content}</Text>
+                            </View>
+                        ))}
+                    </View>
+                ) : (
+                    <View style={styles.noCommentsContainer}>
+                        <Feather name="message-square" size={40} color="#ddd" />
+                        <Text style={styles.noCommentsText}>아직 댓글이 없습니다.</Text>
+                        <Text style={styles.noCommentsSubText}>첫 번째 댓글을 남겨보세요!</Text>
                     </View>
                 )}
+                
+                {/* 댓글 작성 영역 */}
+                {isLoggedIn ? (
+                    <View style={styles.commentInputContainer}>
+                        <TextInput
+                            style={styles.commentInput}
+                            placeholder="댓글을 입력하세요..."
+                            value={commentText}
+                            onChangeText={setCommentText}
+                            multiline
+                        />
+                        <TouchableOpacity 
+                            style={[
+                                styles.commentSubmitButton,
+                                !commentText.trim() && styles.commentSubmitButtonDisabled
+                            ]}
+                            disabled={!commentText.trim()}
+                            onPress={handleCommentSubmit}
+                        >
+                            <Feather name="send" size={18} color={commentText.trim() ? "#fff" : "#ccc"} />
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    <TouchableOpacity style={styles.loginPromptContainer}>
+                        <Feather name="lock" size={16} color="#666" />
+                        <Text style={styles.loginPromptText}>댓글을 작성하려면 로그인이 필요합니다.</Text>
+                    </TouchableOpacity>
+                )}
+            </View>
+        );
+    };
+    
+    // 선택된 레스토랑이 없는 경우 처리
+    if (!selectedRestaurant) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <View style={styles.noDataContainer}>
+                    <Feather name="alert-circle" size={50} color="#ccc" />
+                    <Text style={styles.noDataText}>레스토랑 정보를 불러올 수 없습니다.</Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+    return (
+        <View style={styles.container}>
+            <StatusBar barStyle="light-content" />
+            
+            {/* 헤더 이미지 슬라이더 - SafeAreaView 바깥에 배치 */}
+            {imageSection()}
+            
+            <ScrollView 
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+                contentInsetAdjustmentBehavior="never"
+            >
+                {/* 레스토랑 기본 정보 및 액션 버튼 */}
+                {mainInfoSection()}
+
+                {/* 콜키지 정보 */}
+                {corkageInfoSection()}
+
+                {/* 영업 정보 및 취급 음료 */}
+                {businessInfoSection()}
+                
+                {/* 댓글 섹션 */}
+                {commentSection()}
                 
                 {/* 하단 여백 */}
                 <View style={styles.bottomSpacer} />
@@ -355,14 +470,50 @@ const styles = StyleSheet.create({
         marginLeft: 8,
         color: '#333',
     },
+    corkageStatusContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    corkageBadge: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+        marginRight: 10,
+    },
+    corkageBadgeText: {
+        fontSize: 13,
+        fontWeight: '600',
+    },
+    corkageFreeBadge: {
+        backgroundColor: '#E8F5E9',
+    },
+    corkageFreeBadgeText: {
+        color: '#2E7D32',
+    },
+    corkageFeeBadge: {
+        backgroundColor: '#FFF3E0',
+    },
+    corkageFeeBadgeText: {
+        color: '#F9A826',
+    },
     corkageText: {
         fontSize: 16,
         color: '#555',
-        marginBottom: 8,
     },
     corkageFree: {
         color: '#4CAF50',
         fontWeight: '600',
+    },
+    corkageFeeContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    corkageFeeText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#F9A826',
+        marginLeft: 5,
     },
     noteContainer: {
         backgroundColor: '#f5f5f5',
@@ -395,6 +546,18 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#333',
     },
+    drinkCategorySection: {
+        marginTop: 16,
+        paddingTop: 16,
+        borderTopWidth: 1,
+        borderTopColor: '#eee',
+    },
+    drinkCategoryTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 10,
+        color: '#333',
+    },
     drinkCategoriesContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -410,5 +573,105 @@ const styles = StyleSheet.create({
     drinkCategoryText: {
         fontSize: 13,
         color: '#2E7D32',
+    },
+    // 댓글 섹션 스타일
+    commentsContainer: {
+        marginTop: 8,
+    },
+    commentItem: {
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+    },
+    commentHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    commentUserImage: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        marginRight: 8,
+    },
+    commentUserImagePlaceholder: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        backgroundColor: '#f3f3f3',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 8,
+    },
+    commentUserName: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#444',
+    },
+    commentDate: {
+        fontSize: 12,
+        color: '#999',
+        marginLeft: 'auto',
+    },
+    commentContent: {
+        fontSize: 14,
+        color: '#333',
+        lineHeight: 20,
+    },
+    noCommentsContainer: {
+        alignItems: 'center',
+        paddingVertical: 24,
+    },
+    noCommentsText: {
+        fontSize: 16,
+        fontWeight: '500',
+        color: '#666',
+        marginTop: 8,
+    },
+    noCommentsSubText: {
+        fontSize: 14,
+        color: '#999',
+        marginTop: 4,
+    },
+    commentInputContainer: {
+        flexDirection: 'row',
+        marginTop: 16,
+        alignItems: 'flex-end',
+    },
+    commentInput: {
+        flex: 1,
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 20,
+        padding: 10,
+        paddingVertical: 8,
+        maxHeight: 100,
+        backgroundColor: '#f9f9f9',
+    },
+    commentSubmitButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#F9A826',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 8,
+    },
+    commentSubmitButtonDisabled: {
+        backgroundColor: '#eee',
+    },
+    loginPromptContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 16,
+        padding: 12,
+        backgroundColor: '#f5f5f5',
+        borderRadius: 8,
+    },
+    loginPromptText: {
+        marginLeft: 8,
+        fontSize: 14,
+        color: '#666',
     },
 });

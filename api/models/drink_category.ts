@@ -11,6 +11,7 @@ export enum DrinkCategory {
     BAIJIU = "baijiu",
     WHISKEY = "whiskey",
     KOREAN_TRADITIONAL = "korean_traditional",
+    SAKE = "sake",
     OTHERS = "others"
 }
 
@@ -44,6 +45,11 @@ export const DRINK_CATEGORIES: DrinkCategoryData[] = [
     id: DrinkCategory.KOREAN_TRADITIONAL,
     title: "전통주",
     emoji: "🍾"
+  },
+  {
+    id: DrinkCategory.SAKE,
+    title: "사케",
+    emoji: "🇯🇵"
   },
   {
     id: DrinkCategory.OTHERS,

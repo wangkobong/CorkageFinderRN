@@ -2,7 +2,11 @@ import { initializeApp } from 'firebase/app';
 import { 
   getFirestore, 
   collection, 
-  addDoc 
+  addDoc,
+  doc,
+  setDoc,
+  getDoc,
+  deleteDoc
 } from 'firebase/firestore';
 import { 
   getStorage, 
@@ -67,39 +71,110 @@ export class RestaurantRegisterService {
     }
   }
   
-  // 레스토랑 정보 추가 함수
   static async addRestaurant(data: RestaurantCard): Promise<string> {
+    try {
+        const db = getFirestore();
+        
+        // restaurantID를 문서 ID로 사용
+        const docRef = doc(db, "pending", data.restaurantID);
+
+        // Firestore에 데이터 추가
+        await setDoc(docRef, {
+            imageURLs: data.imageURLs,
+            name: data.name,
+            category: data.category,
+            isCorkageFree: data.isCorkageFree,
+            corkageFee: data.corkageFee,
+            sido: data.sido,
+            sigungu: data.sigungu,
+            phoneNumber: data.phoneNumber,
+            address: data.address,
+            addressDetail: data.addressDetail,
+            businessHours: data.businessHours,
+            closedDays: data.closedDays,
+            corkageNote: data.corkageNote,
+            latitude: data.latitude || 0.0,
+            longitude: data.longitude || 0.0,
+            isBreaktime: data.isBreaktime,
+            breaktime: data.breaktime,
+            drinkCategories: data.drinkCategories
+        });
+        
+        console.log("Restaurant added with ID:", data.restaurantID);
+        return data.restaurantID;
+        
+    } catch (error) {
+        console.error('레스토랑 추가 중 오류 발생:', error);
+        throw error;
+    }
+  }
+
+  // 레스토랑 승인 메서드
+  static async approveRestaurant(restaurantID: string): Promise<void> {
     try {
       const db = getFirestore();
       
-      // Firestore에 데이터 추가
-      const docRef = await addDoc(collection(db, "pending"), {
-        restaurantID: data.restaurantID,
-        imageURLs: data.imageURLs,
-        name: data.name,
-        category: data.category, // category는 enum의 rawValue로 저장됨
-        isCorkageFree: data.isCorkageFree,
-        corkageFee: data.corkageFee,
-        sido: data.sido,
-        sigungu: data.sigungu,
-        phoneNumber: data.phoneNumber,
-        address: data.address,
-        addressDetail: data.addressDetail,
-        businessHours: data.businessHours,
-        closedDays: data.closedDays,
-        corkageNote: data.corkageNote,
-        latitude: data.latitude || 0.0,
-        longitude: data.longitude || 0.0,
-        isBreaktime: data.isBreaktime,
-        breaktime: data.breaktime,
-        drinkCategories: data.drinkCategories
+      // 1. pending 컬렉션에서 데이터 가져오기
+      const pendingDocRef = doc(db, "pending", restaurantID);
+      const pendingDocSnap = await getDoc(pendingDocRef);
+      
+      if (!pendingDocSnap.exists()) {
+        throw new Error(`대기 중인 식당 ID ${restaurantID}를 찾을 수 없습니다.`);
+      }
+      
+      const restaurantData = pendingDocSnap.data();
+      
+      // 2. approved 컬렉션에 데이터 추가
+      const approvedDocRef = doc(db, "approved", restaurantID);
+      await setDoc(approvedDocRef, {
+        ...restaurantData,
+        approvedAt: new Date().toISOString(), // 승인 시간 추가
+        status: 'approved' // 상태 표시
       });
       
-      console.log("Restaurant added with ID:", docRef.id);
-      return docRef.id;
+      console.log("Restaurant approved with ID:", restaurantID);
+      
+      // 3. pending 컬렉션에서 문서 삭제
+      await deleteDoc(pendingDocRef);
+      console.log("Restaurant removed from pending collection:", restaurantID);
       
     } catch (error) {
-      console.error('레스토랑 추가 중 오류 발생:', error);
+      console.error('레스토랑 승인 중 오류 발생:', error);
+      throw error;
+    }
+  }
+  
+  // 레스토랑 거절 메서드
+  static async rejectRestaurant(restaurantID: string): Promise<void> {
+    try {
+      const db = getFirestore();
+      
+      // 1. pending 컬렉션에서 데이터 가져오기
+      const pendingDocRef = doc(db, "pending", restaurantID);
+      const pendingDocSnap = await getDoc(pendingDocRef);
+      
+      if (!pendingDocSnap.exists()) {
+        throw new Error(`대기 중인 식당 ID ${restaurantID}를 찾을 수 없습니다.`);
+      }
+      
+      const restaurantData = pendingDocSnap.data();
+      
+      // 2. rejected 컬렉션에 데이터 추가
+      const rejectedDocRef = doc(db, "rejected", restaurantID);
+      await setDoc(rejectedDocRef, {
+        ...restaurantData,
+        rejectedAt: new Date().toISOString(), // 거절 시간 추가
+        status: 'rejected' // 상태 표시
+      });
+      
+      console.log("Restaurant rejected with ID:", restaurantID);
+      
+      // 3. pending 컬렉션에서 문서 삭제
+      await deleteDoc(pendingDocRef);
+      console.log("Restaurant removed from pending collection:", restaurantID);
+      
+    } catch (error) {
+      console.error('레스토랑 거절 중 오류 발생:', error);
       throw error;
     }
   }

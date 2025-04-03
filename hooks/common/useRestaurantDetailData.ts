@@ -3,6 +3,8 @@ import { Platform, Linking, NativeSyntheticEvent, NativeScrollEvent, Dimensions 
 import { useRestaurantStore } from '../../app/store/_restaurantStore';
 import { useAuthStore } from '../../app/store/_authStore';
 import { Comment } from '../../api/models/comment';
+import { doc, getDoc, deleteDoc, setDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '@/app/_layout';
 
 const { width } = Dimensions.get('window');
 
@@ -104,13 +106,10 @@ export const useRestaurantDetailData = () => {
     };
 
     // 댓글 작성 함수
-    const handleCommentSubmit = () => {
+    const handleCommentSubmit = async () => {
         if (!commentText.trim() || !isLoggedIn) return;
-        
-        // 여기서 API 호출 및 댓글 저장 로직을 구현할 수 있습니다.
-        console.log('댓글 작성:', commentText);
-        
-        // 임시로 댓글 추가 (실제로는 API 응답으로 처리해야 함)
+
+        // 새로운 댓글 객체 생성
         const newComment: Comment = {
             id: String(Date.now()),
             content: commentText,
@@ -118,9 +117,55 @@ export const useRestaurantDetailData = () => {
             createdAt: new Date().toISOString(),
             userId: '1',
         };
-        
-        setComments([...comments, newComment]);
-        setCommentText('');
+
+        try {
+            // 파이어스토어에서 레스토랑 문서 참조
+            const restaurantsSnapshot = await getDocs(collection(db, "apporved"));
+            console.log("restaurantDoc", restaurantsSnapshot);
+            console.log("selectedRestaurant", selectedRestaurant);
+            // 쿼리 생성
+            const q = query(
+                collection(db, "approved"),
+                where("restaurantID", "==", selectedRestaurant?.restaurantID)
+            );
+
+// 문서 참조 생성
+const docRef = doc(db, "approved", selectedRestaurant?.restaurantID || '');
+
+            // 문서 가져오기
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const restaurantData = docSnap.data();
+                console.log("Restaurant Data:", restaurantData);
+    // 여기서 restaurantData를 사용하여 원하는 작업 수행
+} else {
+                console.log("해당 문서를 찾을 수 없습니다.");
+            }
+            
+            // 쿼리 결과 가져오기
+            const querySnapshot = await getDocs(q);
+
+            querySnapshot.forEach((doc) => {
+                const restaurantData = doc.data();
+                console.log("Restaurant Data:", restaurantData);
+                // 여기서 restaurantData를 사용하여 원하는 작업 수행
+            });
+
+            // if (restaurantDoc.exists()) {
+            //     const restaurantData = {
+            //         ...restaurantDoc.data(),
+            //         comments: [...(restaurantDoc.data()?.comments || []), newComment]
+            //     };
+
+
+
+            // 로컬 상태 업데이트
+            setComments([...comments, newComment]);
+            setCommentText('');
+        } catch (error) {
+            console.error('댓글 추가 중 오류 발생:', error);
+        }
     };
 
     // 이미지 배열 준비 (없으면 기본 이미지 표시)

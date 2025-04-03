@@ -6,6 +6,7 @@ import { db } from '@/app/_layout';
 import { useLocalSearchParams, router } from 'expo-router';
 import { RestaurantCard } from '../../../api/models/restaurant';
 import { TitleText } from '../../components/title_text';
+import { RestaurantRegisterService } from '../../services/RestaurantRegisterService';
 
 // 상세 정보 타입
 interface PendingRestaurantDetail extends RestaurantCard {
@@ -88,21 +89,7 @@ const PendingRestaurantDetailScreen = () => {
               // 로딩 표시
               setLoading(true);
               
-              // 1. 현재 데이터를 approved 컬렉션으로 복사
-              const { id, ...restaurantDataWithoutId } = restaurant;
-              
-              // approved 컬렉션에 동일한 ID로 저장
-              await setDoc(doc(db, "approved", id), {
-                ...restaurantDataWithoutId,
-                approvedAt: new Date().toISOString(), // 승인 시간 추가
-                status: 'approved' // 상태 필드 추가
-              });
-              
-              console.log("Approved 컬렉션에 데이터 복사 완료:", id);
-              
-              // 2. pending에서 원본 데이터 삭제
-              await deleteDoc(doc(db, "pending", id));
-              console.log("Pending 컬렉션에서 데이터 삭제 완료:", id);
+              await RestaurantRegisterService.approveRestaurant(restaurant.id);
               
               setLoading(false);
               Alert.alert("성공", "식당이 성공적으로 승인되었습니다.");
@@ -135,33 +122,19 @@ const PendingRestaurantDetailScreen = () => {
                 Alert.alert("오류", "식당 정보가 없습니다.");
                 return;
               }
-              
+
               // 로딩 표시
               setLoading(true);
               
-              // 1. 현재 데이터를 rejected 컬렉션으로 복사
-              const { id, ...restaurantDataWithoutId } = restaurant;
-              
-              // rejected 컬렉션에 동일한 ID로 저장
-              await setDoc(doc(db, "rejected", id), {
-                ...restaurantDataWithoutId,
-                rejectedAt: new Date().toISOString(), // 거부 시간 추가
-                status: 'rejected' // 상태 필드 추가
-              });
-              
-              console.log("Rejected 컬렉션에 데이터 복사 완료:", id);
-              
-              // 2. pending에서 원본 데이터 삭제
-              await deleteDoc(doc(db, "pending", id));
-              console.log("Pending 컬렉션에서 데이터 삭제 완료:", id);
+              await RestaurantRegisterService.rejectRestaurant(restaurant.id);
               
               setLoading(false);
-              Alert.alert("성공", "식당이 거부되었습니다.");
+              Alert.alert("성공", "식당이 성공적으로 거절되었습니다.");
               router.back(); // 이전 화면으로 돌아가기
             } catch (error: any) {
-              console.error("거부 과정 오류:", error);
+              console.error("승인 과정 오류:", error);
               setLoading(false);
-              Alert.alert("오류", `거부 과정에서 오류가 발생했습니다: ${error.message}`);
+              Alert.alert("오류", `거절 과정에서 오류가 발생했습니다: ${error.message}`);
             }
           }
         }

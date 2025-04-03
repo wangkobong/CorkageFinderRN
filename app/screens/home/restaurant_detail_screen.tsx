@@ -208,6 +208,12 @@ const RestaurantDetailScreen = () => {
                         <Text style={styles.cardTitle}>영업 정보</Text>
                     </View>
                     <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>전화번호:</Text>
+                        <Text style={styles.infoValue}>
+                            {selectedRestaurant.phoneNumber || '정보 없음'}
+                        </Text>
+                    </View>
+                    <View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>영업시간:</Text>
                         <Text style={styles.infoValue}>{selectedRestaurant.businessHours}</Text>
                     </View>

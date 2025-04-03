@@ -10,8 +10,12 @@ import {
 } from 'firebase/auth';
 import { auth } from '../_layout';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import type {
+  GetProfileResponse,
+  NaverLoginResponse,
+} from '@react-native-seoul/naver-login';
+import NaverLogin from '@react-native-seoul/naver-login';
 
-// 사용자 데이터 인터페이스
 interface UserData {
   uid: string;
   displayName: string | null;
@@ -28,6 +32,7 @@ interface AuthState {
   
   // 액션 메서드
   googleLogin: () => Promise<void>;
+  naverLogin: () => Promise<void>;
   logout: () => Promise<void>;
   initialize: () => Promise<void>;
   clearError: () => void;
@@ -183,6 +188,105 @@ export const useAuthStore = create<AuthState>()(
           set({ 
             isLoading: false, 
             error: errorMessage 
+          });
+        }
+      },
+
+      // 네이버 로그인 메서드 
+      naverLogin: async () => {
+        console.log(NaverLogin)
+        try {
+          set({ isLoading: true, error: null });
+          console.log('네이버 로그인 시도');
+          
+          // 네이버 로그인 초기화
+          const consumerKey = process.env.EXPO_PUBLIC_NAVER_CLIENT_ID || '';
+          const consumerSecret = process.env.EXPO_PUBLIC_NAVER_CLIENT_SECRET || '';
+          const appName = 'corkageFinder';
+          const serviceUrlSchemeIOS = 'com.sungyeon.corkagefinder';
+          
+          // 네이버 SDK 초기화
+          NaverLogin.initialize({
+            consumerKey,
+            consumerSecret,
+            appName,
+            serviceUrlSchemeIOS,
+          });
+          
+          // 네이버 로그인 요청
+          const loginResponse = await NaverLogin.login();
+          
+          if (loginResponse.isSuccess && loginResponse.successResponse) {
+            console.log('네이버 로그인 성공');
+            
+            // 액세스 토큰으로 프로필 정보 요청
+            const profileResult = await NaverLogin.getProfile(loginResponse.successResponse.accessToken);
+            console.log('네이버 프로필 정보:', profileResult);
+            
+            if (profileResult.resultcode === '00' && profileResult.response) {
+              // 프로필 정보 추출
+              const { id, name, email, profile_image } = profileResult.response;
+              
+              // 임시 사용자 정보 생성 (실제로는 Firebase Custom Token을 사용해야 함)
+              const userData: UserData = {
+                uid: `naver:${id}`,
+                displayName: name,
+                email: email,
+                photoURL: profile_image
+              };
+
+              console.log('네이버 로그인 정보:', userData);
+              
+              // // 상태 업데이트
+              // set({
+              //   isAuthenticated: true,
+              //   user: userData,
+              //   isLoading: false
+              // });
+              
+              // // AsyncStorage에 저장
+              // await AsyncStorage.setItem('user', JSON.stringify(userData));
+              // await AsyncStorage.setItem('user_logged_in', 'true');
+              
+              // console.log('네이버 로그인 정보가 저장되었습니다.');
+              
+              /* 
+              참고: 실제 Firebase 인증을 위해서는 서버 연동 필요
+              1. 네이버 액세스 토큰을 서버에 전송
+              2. 서버에서 Firebase Custom Token 생성
+              3. Custom Token으로 Firebase 인증
+              
+              예시:
+              const serverResponse = await fetch('https://your-server.com/create-firebase-token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                  provider: 'naver', 
+                  token: loginResponse.successResponse.accessToken 
+                }),
+              });
+              
+              const { firebaseToken } = await serverResponse.json();
+              const userCredential = await signInWithCustomToken(auth, firebaseToken);
+              
+              set({
+                isAuthenticated: true,
+                user: mapUserData(userCredential.user),
+                isLoading: false
+              });
+              */
+            } else {
+              throw new Error('네이버 프로필 정보를 가져오는데 실패했습니다.');
+            }
+          } else {
+            console.log('네이버 로그인 실패:', loginResponse.failureResponse?.message);
+            throw new Error(loginResponse.failureResponse?.message || '네이버 로그인 실패');
+          }
+        } catch (error: any) {
+          console.error('네이버 로그인 중 오류:', error);
+          set({ 
+            isLoading: false, 
+            error: error.message || '네이버 로그인 중 오류가 발생했습니다.' 
           });
         }
       },

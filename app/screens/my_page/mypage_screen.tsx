@@ -33,6 +33,7 @@ const MyPageScreen = () => {
         isLoading, 
         error, 
         googleLogin, 
+        naverLogin,
         logout 
     } = useAuthStore();
 
@@ -72,13 +73,25 @@ const MyPageScreen = () => {
         await googleLogin();
     };
 
+    // 애플 로그인 핸들러
+    const handleAppleLogin = async () => {
+        console.log('애플로그인 시도');
+    };
+
+        // 카카오 로그인 핸들러 추가
+    const handleKakaoLogin = async () => {
+        console.log('카카오로그인 시도');
+        showFeatureInProgressPopup('카카오 로그인');
+    };
+    
+    // 네이버 로그인 핸들러 추가
+    const handleNaverLogin = async () => {
+        await naverLogin();
+    };
+
     // 로그아웃 핸들러
     const handleLogout = async () => {
         await logout();
-    };
-
-    const handleAppleLogin = async () => {
-        console.log('애플로그인 시도');
     };
 
     // 준비중 기능 팝업 표시 핸들러
@@ -120,10 +133,28 @@ const MyPageScreen = () => {
       <TouchableOpacity style={styles.appleButton} onPress={handleAppleLogin}>
         <View style={{ position: 'relative', flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <Image 
-                source={require('../../../assets/images/mypage/login_apple_logo.png')} 
+            source={require('../../../assets/images/mypage/login_apple_logo.png')} 
             style={{ position: 'absolute', left: 40 }}
           />
           <Text style={styles.appleButtonText}>애플 로그인</Text>
+        </View>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.kakaoButton} onPress={handleKakaoLogin}>
+      <View style={{ position: 'relative', flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Image 
+            source={require('../../../assets/images/mypage/login_kakao_logo.png')} 
+            style={{ position: 'absolute', left: 40 }}
+          />
+          <Text style={styles.kakaoButtonText}>카카오 로그인</Text>
+        </View>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.naverButton} onPress={handleNaverLogin}>
+      <View style={{ position: 'relative', flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Image 
+            source={require('../../../assets/images/mypage/login_apple_logo.png')} 
+            style={{ position: 'absolute', left: 40 }}
+          />
+          <Text style={styles.naverButtonText}>네이버 로그인</Text>
         </View>
       </TouchableOpacity>
     </View>
@@ -414,6 +445,24 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         flexDirection: 'row',
         alignItems: 'center',
+        marginBottom: 10,
+    },
+    kakaoButton: {
+        height: 48,
+        width: '100%',
+        backgroundColor: '#FFE812',
+        borderRadius: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    naverButton: {
+        height: 48,
+        width: '100%',
+        backgroundColor: '#1DC800',
+        borderRadius: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     googleButtonText: {
         textAlign: 'center',
@@ -421,6 +470,18 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     appleButtonText: {
+        textAlign: 'center',
+        color: '#FFFFFF',
+        fontSize: 17,
+        fontWeight: 'bold',
+    },
+    kakaoButtonText: {
+        textAlign: 'center',
+        color: '#000000',
+        fontSize: 17,
+        fontWeight: 'bold',
+    },
+    naverButtonText: {
         textAlign: 'center',
         color: '#FFFFFF',
         fontSize: 17,

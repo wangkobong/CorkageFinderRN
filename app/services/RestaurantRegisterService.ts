@@ -17,6 +17,8 @@ import {
 } from 'firebase/storage';
 import { firebaseConfig } from '../../firebaseConfig';
 import { RestaurantCard } from '../../api/models/restaurant';
+import * as ImageManipulator from 'expo-image-manipulator';
+
 // Firebase 초기화 상태를 추적하는 변수
 let isFirebaseInitialized = false;
 
@@ -42,7 +44,17 @@ export class RestaurantRegisterService {
       // 이미지 순차적으로 업로드
       for (let i = 0; i < images.length; i++) {
         const image = images[i];
-        const response = await fetch(image.uri);
+        
+        // 이미지 압축 처리
+        // @ts-ignore - 이미지 매니퓰레이터 API 변경에 대한 경고 억제
+        const manipResult = await ImageManipulator.manipulateAsync(
+          image.uri,
+          [{ resize: { width: 1080 } }], // 가로 크기 1080px로 리사이징 (세로는 비율 유지)
+          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG } // 70% 품질로 압축, JPEG 형식
+        );
+        
+        // 압축된 이미지 가져오기
+        const response = await fetch(manipResult.uri);
         const blob = await response.blob();
         
         // 이미지 저장 경로와 파일명 생성
@@ -80,6 +92,7 @@ export class RestaurantRegisterService {
 
         // Firestore에 데이터 추가
         await setDoc(docRef, {
+            restaurantID: data.restaurantID,
             imageURLs: data.imageURLs,
             name: data.name,
             category: data.category,

@@ -50,13 +50,33 @@ export const useRestaurantDetailData = () => {
     const resetSelectedRestaurant = useRestaurantStore((state) => state.resetSelectedRestaurant);
     const [activeImageIndex, setActiveImageIndex] = useState(0);
     
-    // 인증 스토어에서 로그인 상태 가져오기
+    // 인증 스토어에서 로그인 상태와 사용자 정보 가져오기
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+    const user = useAuthStore((state) => state.user);
     
     // 댓글 관련 상태
     const [comments, setComments] = useState<Comment[]>([]);
     const [commentText, setCommentText] = useState('');
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    // 댓글 불러오기 함수
+    const fetchComments = async () => {
+        if (!selectedRestaurant?.restaurantID) return;
+        
+        try {
+            const docRef = doc(db, "approved", selectedRestaurant.restaurantID);
+            const docSnap = await getDoc(docRef);
+            
+            if (docSnap.exists()) {
+                const restaurantData = docSnap.data();
+                const existingComments = restaurantData.comments || [];
+                setComments(existingComments);
+                console.log("댓글을 성공적으로 불러왔습니다:", existingComments);
+            }
+        } catch (error) {
+            console.error("댓글 불러오기 중 오류 발생:", error);
+        }
+    };
 
     useEffect(() => {
         // 컴포넌트가 마운트될 때 선택된 레스토랑 정보를 로그로 출력
@@ -68,12 +88,17 @@ export const useRestaurantDetailData = () => {
         // isLoggedIn 상태 업데이트
         setIsLoggedIn(isAuthenticated);
 
+        // 댓글 불러오기
+        if (selectedRestaurant?.restaurantID) {
+            fetchComments();
+        }
+
         // 컴포넌트가 언마운트될 때 선택된 레스토랑 상태 초기화
         return () => {
             console.log('레스토랑 상세 화면 이탈 - 상태 초기화');
             resetSelectedRestaurant();
         };
-    }, [isAuthenticated]);
+    }, [isAuthenticated, selectedRestaurant?.restaurantID]);
 
     // 전화 걸기 기능
     const handlePhoneCall = () => {
@@ -109,13 +134,14 @@ export const useRestaurantDetailData = () => {
     const handleCommentSubmit = async () => {
         if (!commentText.trim() || !isLoggedIn) return;
 
-        // 새로운 댓글 객체 생성
+        // 새로운 댓글 객체 생성 (현재 로그인한 사용자 정보 사용)
         const newComment: Comment = {
             id: String(Date.now()),
             content: commentText,
-            userName: '사용자',
+            userName: user?.displayName || '사용자',
+            userProfileImage: user?.photoURL || undefined,
             createdAt: new Date().toISOString(),
-            userId: '1',
+            userId: user?.uid || '1',
         };
 
         try {
@@ -129,8 +155,8 @@ export const useRestaurantDetailData = () => {
                 where("restaurantID", "==", selectedRestaurant?.restaurantID)
             );
 
-// 문서 참조 생성
-const docRef = doc(db, "approved", selectedRestaurant?.restaurantID || '');
+            // 문서 참조 생성
+            const docRef = doc(db, "approved", selectedRestaurant?.restaurantID || '');
 
             // 문서 가져오기
             const docSnap = await getDoc(docRef);
@@ -138,8 +164,27 @@ const docRef = doc(db, "approved", selectedRestaurant?.restaurantID || '');
             if (docSnap.exists()) {
                 const restaurantData = docSnap.data();
                 console.log("Restaurant Data:", restaurantData);
-    // 여기서 restaurantData를 사용하여 원하는 작업 수행
-} else {
+                
+                // 기존 댓글 배열 가져오기 (없으면 빈 배열 사용)
+                const currentComments = restaurantData.comments || [];
+                
+                // 새로운 댓글을 추가한 배열 생성
+                const updatedComments = [...currentComments, newComment];
+                
+                // 업데이트할 데이터 객체 생성
+                const updatedRestaurantData = {
+                    ...restaurantData,
+                    comments: updatedComments
+                };
+                
+                // Firestore 문서 업데이트
+                await setDoc(docRef, updatedRestaurantData);
+                console.log("댓글이 성공적으로 추가되었습니다.");
+                
+                // 로컬 상태 업데이트
+                setComments(updatedComments);
+                setCommentText('');
+            } else {
                 console.log("해당 문서를 찾을 수 없습니다.");
             }
             
@@ -151,18 +196,6 @@ const docRef = doc(db, "approved", selectedRestaurant?.restaurantID || '');
                 console.log("Restaurant Data:", restaurantData);
                 // 여기서 restaurantData를 사용하여 원하는 작업 수행
             });
-
-            // if (restaurantDoc.exists()) {
-            //     const restaurantData = {
-            //         ...restaurantDoc.data(),
-            //         comments: [...(restaurantDoc.data()?.comments || []), newComment]
-            //     };
-
-
-
-            // 로컬 상태 업데이트
-            setComments([...comments, newComment]);
-            setCommentText('');
         } catch (error) {
             console.error('댓글 추가 중 오류 발생:', error);
         }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Stack } from 'expo-router';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Modal, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';  
 import { TitleText } from '../../components/title_text';
 import { Ionicons } from '@expo/vector-icons';
@@ -43,6 +43,10 @@ const MyPageScreen = () => {
         profileImage: '',
     });
 
+    // 준비중 팝업 상태
+    const [isFeaturePopupVisible, setIsFeaturePopupVisible] = useState(false);
+    const [popupMessage, setPopupMessage] = useState('');
+
     // 사용자 정보 업데이트
     useEffect(() => {
         if (user) {
@@ -75,6 +79,22 @@ const MyPageScreen = () => {
 
     const handleAppleLogin = async () => {
         console.log('애플로그인 시도');
+    };
+
+    // 준비중 기능 팝업 표시 핸들러
+    const showFeatureInProgressPopup = (featureName: string) => {
+        setPopupMessage(`${featureName} 기능은 현재 준비중입니다.`);
+        setIsFeaturePopupVisible(true);
+    };
+
+    // 찜한 식당 클릭 핸들러
+    const handleFavoriteRestaurants = () => {
+        showFeatureInProgressPopup('찜한 식당');
+    };
+
+    // 리뷰 관리 클릭 핸들러
+    const handleReviewManagement = () => {
+        showFeatureInProgressPopup('리뷰 관리');
     };
 
     // 승인하기 버튼 처리 함수
@@ -152,9 +172,8 @@ const MyPageScreen = () => {
             {/* 내 활동 섹션 */}
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>내 활동</Text>
-                {renderMenuItem('heart-outline', '찜한 식당', () => {})}
-                {renderMenuItem('time-outline', '최근 본 식당', () => {})}
-                {renderMenuItem('star-outline', '리뷰 관리', () => {})}
+                {renderMenuItem('heart-outline', '찜한 식당', handleFavoriteRestaurants)}
+                {renderMenuItem('star-outline', '리뷰 관리', handleReviewManagement)}
                 {userInfo.email === 'wangkobong@gmail.com' && 
                     renderMenuItem('checkmark-circle-outline', '승인하기', handleApprove)}
             </View>
@@ -163,23 +182,23 @@ const MyPageScreen = () => {
             <View style={styles.divider} />
 
             {/* 설정 섹션 */}
-            <View style={styles.section}>
+            {/* <View style={styles.section}>
                 <Text style={styles.sectionTitle}>설정</Text>
                 {renderMenuItem('notifications-outline', '알림 설정', () => {})}
                 {renderMenuItem('location-outline', '위치 설정', () => {})}
                 {renderMenuItem('lock-closed-outline', '개인정보 설정', () => {})}
-            </View>
+            </View> */}
 
             {/* 구분선 */}
-            <View style={styles.divider} />
+            {/* <View style={styles.divider} /> */}
 
             {/* 고객 지원 섹션 */}
-            <View style={styles.section}>
+            {/* <View style={styles.section}>
                 <Text style={styles.sectionTitle}>고객 지원</Text>
                 {renderMenuItem('help-circle-outline', '자주 묻는 질문', () => {})}
                 {renderMenuItem('chatbubble-outline', '1:1 문의', () => {})}
                 {renderMenuItem('information-circle-outline', '앱 정보', () => {})}
-            </View>
+            </View> */}
 
             {/* 로그아웃 버튼 */}
             <TouchableOpacity 
@@ -213,6 +232,27 @@ const MyPageScreen = () => {
             
             {/* 로그인 상태에 따라 다른 화면 표시 */}
             {isAuthenticated ? renderMyPageScreen() : renderLoginScreen()}
+
+            {/* 기능 준비중 팝업 */}
+            <Modal
+                visible={isFeaturePopupVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setIsFeaturePopupVisible(false)}
+            >
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>안내</Text>
+                        <Text style={styles.modalMessage}>{popupMessage}</Text>
+                        <TouchableOpacity 
+                            style={styles.modalButton}
+                            onPress={() => setIsFeaturePopupVisible(false)}
+                        >
+                            <Text style={styles.modalButtonText}>확인</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 };
@@ -396,6 +436,41 @@ const styles = StyleSheet.create({
         fontSize: 28,
         fontWeight: 'bold',
         color: '#666',
+    },
+    // 모달 스타일
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalContent: {
+        width: '80%',
+        backgroundColor: 'white',
+        borderRadius: 10,
+        padding: 20,
+        alignItems: 'center',
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 10,
+    },
+    modalMessage: {
+        fontSize: 16,
+        textAlign: 'center',
+        marginBottom: 20,
+    },
+    modalButton: {
+        backgroundColor: '#3897f0',
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 5,
+    },
+    modalButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
     },
 });
 

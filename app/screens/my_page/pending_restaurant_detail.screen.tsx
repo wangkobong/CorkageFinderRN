@@ -7,6 +7,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { RestaurantCard } from '../../../api/models/restaurant';
 import { TitleText } from '../../components/title_text';
 import { RestaurantRegisterService } from '../../services/RestaurantRegisterService';
+import { DRINK_CATEGORIES } from '../../../api/models/drink_category';
 
 // 상세 정보 타입
 interface PendingRestaurantDetail extends RestaurantCard {
@@ -273,6 +274,28 @@ const PendingRestaurantDetailScreen = () => {
             </View>
           )}
         </View>
+        
+        {/* 드링크 카테고리 섹션 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>드링크 카테고리</Text>
+          
+          {restaurant.drinkCategories && restaurant.drinkCategories.length > 0 ? (
+            <View style={styles.drinkCategoriesContainer}>
+              {restaurant.drinkCategories.map((category, index) => {
+                const categoryInfo = DRINK_CATEGORIES.find(c => c.id === category);
+                return (
+                  <View key={index} style={styles.drinkCategoryItem}>
+                    <Text style={styles.drinkCategoryText}>
+                      {categoryInfo ? `${categoryInfo.emoji} ${categoryInfo.title}` : category}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          ) : (
+            <Text style={styles.noDataText}>등록된 드링크 카테고리가 없습니다</Text>
+          )}
+        </View>
 
         {/* 영업 정보 섹션 */}
         <View style={styles.section}>
@@ -444,6 +467,27 @@ const styles = StyleSheet.create({
   errorText: {
     color: 'red',
     fontSize: 16,
+  },
+  drinkCategoriesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 8,
+  },
+  drinkCategoryItem: {
+    backgroundColor: '#e0e0e0',
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    margin: 4,
+  },
+  drinkCategoryText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  noDataText: {
+    fontSize: 16,
+    color: '#999',
+    fontStyle: 'italic',
   },
 });
 

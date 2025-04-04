@@ -34,6 +34,7 @@ const MyPageScreen = () => {
         error, 
         googleLogin, 
         naverLogin,
+        kakaoLogin,
         logout 
     } = useAuthStore();
 
@@ -80,8 +81,7 @@ const MyPageScreen = () => {
 
         // 카카오 로그인 핸들러 추가
     const handleKakaoLogin = async () => {
-        console.log('카카오로그인 시도');
-        showFeatureInProgressPopup('카카오 로그인');
+        await kakaoLogin();
     };
     
     // 네이버 로그인 핸들러 추가

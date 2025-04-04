@@ -15,6 +15,11 @@ import type {
   NaverLoginResponse,
 } from '@react-native-seoul/naver-login';
 import NaverLogin from '@react-native-seoul/naver-login';
+import {
+  login,
+  logout,
+  getProfile as getKakaoProfile,
+} from "@react-native-seoul/kakao-login";
 
 interface UserData {
   uid: string;
@@ -33,6 +38,7 @@ interface AuthState {
   // 액션 메서드
   googleLogin: () => Promise<void>;
   naverLogin: () => Promise<void>;
+  kakaoLogin: () => Promise<void>;
   logout: () => Promise<void>;
   initialize: () => Promise<void>;
   clearError: () => void;
@@ -274,7 +280,7 @@ export const useAuthStore = create<AuthState>()(
                 user: mapUserData(userCredential.user),
                 isLoading: false
               });
-              */
+               */
             } else {
               throw new Error('네이버 프로필 정보를 가져오는데 실패했습니다.');
             }
@@ -291,6 +297,15 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+      // 카카오 로그인 메서드
+      kakaoLogin: async () => { 
+        try {
+          const token = await login();
+          console.log('카카오 로그인 성공', token);
+        } catch (err) {
+          console.error("login err", err);
+        }
+      },
       // 로그아웃 메서드
       logout: async () => {
         try {

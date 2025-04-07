@@ -4,12 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Modal, Ale
 import { SafeAreaView } from 'react-native-safe-area-context';  
 import { TitleText } from '../../components/title_text';
 import { Ionicons } from '@expo/vector-icons';
-import * as WebBrowser from 'expo-web-browser';
-import { auth } from '../../_layout';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { signInWithCredential, GoogleAuthProvider, signOut, onAuthStateChanged, User } from 'firebase/auth';
-import { statusCodes } from '@react-native-google-signin/google-signin';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, router } from 'expo-router';
 
 // 인증 스토어 import
@@ -33,6 +28,7 @@ const MyPageScreen = () => {
         isLoading, 
         error, 
         googleLogin, 
+        appleLogin,
         naverLogin,
         kakaoLogin,
         logout 
@@ -76,7 +72,7 @@ const MyPageScreen = () => {
 
     // 애플 로그인 핸들러
     const handleAppleLogin = async () => {
-        console.log('애플로그인 시도');
+        await appleLogin();
     };
 
         // 카카오 로그인 핸들러 추가

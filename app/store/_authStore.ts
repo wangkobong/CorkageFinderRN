@@ -10,6 +10,8 @@ import {
 } from 'firebase/auth';
 import { auth } from '../_layout';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import { OAuthProvider } from 'firebase/auth';
 import type {
   GetProfileResponse,
   NaverLoginResponse,
@@ -37,6 +39,7 @@ interface AuthState {
   
   // 액션 메서드
   googleLogin: () => Promise<void>;
+  appleLogin: () => Promise<void>;
   naverLogin: () => Promise<void>;
   kakaoLogin: () => Promise<void>;
   logout: () => Promise<void>;
@@ -197,6 +200,66 @@ export const useAuthStore = create<AuthState>()(
           });
         }
       },
+
+      // 애플 로그인 메서드
+      appleLogin: async () => {
+        try {
+          set({ isLoading: true, error: null });
+          console.log('애플 로그인 시도');  
+
+          const isAvailable = await AppleAuthentication.isAvailableAsync();
+          if (!isAvailable) {
+              console.log('애플 로그인을 사용할 수 없습니다.');
+              return;
+          }
+          // 애플 로그인 요청
+          const credential = await AppleAuthentication.signInAsync({
+            requestedScopes: [
+                AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+                AppleAuthentication.AppleAuthenticationScope.EMAIL,
+            ],
+          });
+
+          // 인증 정보 확인
+          if (!credential.identityToken) {
+            throw new Error('애플 로그인 인증 토큰을 받지 못했습니다.');
+          }
+
+          const provider = new OAuthProvider('apple.com');
+          const oAuthCredential = provider.credential({
+              idToken: credential.identityToken,
+              rawNonce: '' // nonce가 필요없는 경우 빈 문자열 사용
+          });
+
+          // Firebase로 로그인
+          const userCredential = await signInWithCredential(auth, oAuthCredential);
+          console.log('애플 로그인 성공:', userCredential.user);
+          
+          // 상태 업데이트
+          set({
+            isAuthenticated: true,
+            user: mapUserData(userCredential.user),
+            isLoading: false,
+          });
+          
+          // AsyncStorage에 저장
+          await AsyncStorage.setItem('user', JSON.stringify({
+            uid: userCredential.user.uid,
+            displayName: userCredential.user.displayName,
+            email: userCredential.user.email,
+            photoURL: userCredential.user.photoURL,
+          }));
+          await AsyncStorage.setItem('user_logged_in', 'true');
+          
+          console.log('애플 로그인 정보가 저장되었습니다.');
+        } catch (error: any) {
+          console.error('애플 로그인 중 오류:', error);
+          set({ 
+            isLoading: false, 
+            error: error.message || '애플 로그인 중 오류가 발생했습니다.' 
+          });
+        }
+      },        
 
       // 네이버 로그인 메서드 
       naverLogin: async () => {

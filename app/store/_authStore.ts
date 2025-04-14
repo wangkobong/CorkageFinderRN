@@ -25,12 +25,16 @@ import {
 } from "@react-native-seoul/kakao-login";
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getAuth, signInWithCustomToken } from 'firebase/auth';
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { LoginUser, Provider } from '../../api/models/user';
 
 interface UserData {
   uid: string;
   displayName: string | null;
   email: string | null;
   photoURL: string | null;
+  phoneNumber: string | null;
+  provider: Provider;
 }
 
 // 인증 스토어 상태 인터페이스
@@ -50,10 +54,12 @@ interface AuthState {
   initialize: () => Promise<void>;
   clearError: () => void;
   updateUserInfo: (user: User) => void;
+  isNewUser: (uid: string) => Promise<boolean>;
+  saveUserToFirestore: (user: UserData, provider: Provider, providerId?: string) => Promise<void>;
 }
 
 // Firebase 사용자 객체를 우리의 UserData 형식으로 변환하는 헬퍼 함수
-const mapUserData = (user: User | null): UserData | null => {
+const mapUserData = (user: User | null, provider: Provider): UserData | null => {
   if (!user) return null;
   
   return {
@@ -61,6 +67,8 @@ const mapUserData = (user: User | null): UserData | null => {
     displayName: user.displayName,
     email: user.email,
     photoURL: user.photoURL,
+    phoneNumber: user.phoneNumber || '',
+    provider: provider,
   };
 };
 
@@ -95,6 +103,8 @@ export const useAuthStore = create<AuthState>()(
                     displayName: userData.displayName,
                     email: userData.email,
                     photoURL: userData.photoURL,
+                    phoneNumber: userData.phoneNumber,
+                    provider: userData.provider,
                   },
                   isLoading: false,
                 });
@@ -111,9 +121,22 @@ export const useAuthStore = create<AuthState>()(
           const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
               // 사용자가 로그인한 경우
+              // 제공자 확인
+              let provider = Provider.KAKAO;
+              if (user.providerData && user.providerData.length > 0) {
+                const providerId = user.providerData[0].providerId;
+                if (providerId.includes('google')) {
+                  provider = Provider.GOOGLE;
+                } else if (providerId.includes('apple')) {
+                  provider = Provider.APPLE;
+                } else if (providerId.includes('naver')) {
+                  provider = Provider.NAVER;
+                }
+              }
+
               set({
                 isAuthenticated: true,
-                user: mapUserData(user),
+                user: mapUserData(user, provider),
                 isLoading: false,
               });
               
@@ -145,6 +168,50 @@ export const useAuthStore = create<AuthState>()(
         });
       },
 
+      // 새로운 사용자인지 확인하는 메서드
+      isNewUser: async (uid: string): Promise<boolean> => {
+        try {
+          const db = getFirestore();
+          const userDocRef = doc(db, 'users', uid);
+          const userDoc = await getDoc(userDocRef);
+          return !userDoc.exists();
+        } catch (error) {
+          console.error('사용자 확인 중 오류:', error);
+          return false;
+        }
+      },
+
+      // 사용자 정보를 Firestore에 저장하는 메서드 (LoginUser 사용)
+      saveUserToFirestore: async (user: UserData, provider: Provider, providerId: string = ''): Promise<void> => {
+        try {
+          const db = getFirestore();
+          const userDocRef = doc(db, 'users', user.uid);
+          
+          // LoginUser 형식으로 데이터 구성
+          const loginUser: LoginUser = {
+            userID: user.uid,
+            name: user.displayName || '',
+            email: user.email || '',
+            profileImage: user.photoURL || '',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            provider: provider,
+            providerId: providerId,
+            favorites: [],
+            phoneNumber: user.phoneNumber || '',
+            nickname: user.displayName || '',
+            pushNotification: false,
+            marketingConsent: false,
+            fcmToken: '',
+          };
+          
+          await setDoc(userDocRef, loginUser);
+          console.log('사용자 정보가 LoginUser 형식으로 Firestore에 저장되었습니다.');
+        } catch (error) {
+          console.error('Firestore에 사용자 저장 중 오류:', error);
+        }
+      },
+
       // 구글 로그인 메서드
       googleLogin: async () => {
         try {
@@ -171,10 +238,22 @@ export const useAuthStore = create<AuthState>()(
           const userCredential = await signInWithCredential(auth, googleCredential);
           console.log('파이어베이스 로그인 성공:', userCredential.user);
           
+          // 새 사용자 확인 및 Firestore에 저장
+          const userData = mapUserData(userCredential.user, Provider.GOOGLE);
+          if (userData) {
+            const isFirstLogin = await get().isNewUser(userData.uid);
+            if (isFirstLogin) {
+              await get().saveUserToFirestore(userData, Provider.GOOGLE, userCredential.user.providerData[0]?.uid || '');
+              console.log('새 사용자 정보가 Firestore에 저장되었습니다.');
+            } else {
+              console.log('기존 사용자입니다. Firestore에 저장하지 않습니다.');
+            }
+          }
+          
           // 로그인 상태 및 사용자 정보 저장
           set({
             isAuthenticated: true,
-            user: mapUserData(userCredential.user),
+            user: userData,
             isLoading: false,
           });
           
@@ -239,22 +318,30 @@ export const useAuthStore = create<AuthState>()(
           const userCredential = await signInWithCredential(auth, oAuthCredential);
           console.log('애플 로그인 성공:', userCredential.user);
           
+          // 새 사용자 확인 및 Firestore에 저장
+          const userData = mapUserData(userCredential.user, Provider.APPLE);
+          if (userData) {
+            const isFirstLogin = await get().isNewUser(userData.uid);
+            if (isFirstLogin) {
+              await get().saveUserToFirestore(userData, Provider.APPLE, userCredential.user.providerData[0]?.uid || '');
+              console.log('새 사용자 정보가 Firestore에 저장되었습니다.');
+            } else {
+              console.log('기존 사용자입니다. Firestore에 저장하지 않습니다.');
+            }
+          }
+          
           // 상태 업데이트
           set({
             isAuthenticated: true,
-            user: mapUserData(userCredential.user),
+            user: userData,
             isLoading: false,
           });
           
           // AsyncStorage에 저장
-          await AsyncStorage.setItem('user', JSON.stringify({
-            uid: userCredential.user.uid,
-            displayName: userCredential.user.displayName,
-            email: userCredential.user.email,
-            photoURL: userCredential.user.photoURL,
-          }));
-          await AsyncStorage.setItem('user_logged_in', 'true');
           
+          await AsyncStorage.setItem('user_logged_in', 'true');
+          await AsyncStorage.setItem('auth_token', credential.identityToken);          
+
           console.log('애플 로그인 정보가 저장되었습니다.');
         } catch (error: any) {
           console.error('애플 로그인 중 오류:', error);
@@ -327,15 +414,30 @@ export const useAuthStore = create<AuthState>()(
               const user = userCredential.user;
               console.log('Firebase 로그인 성공:', user.uid);
               
+              // 새 사용자 확인 및 Firestore에 저장
+              const userData = mapUserData(user, Provider.NAVER);
+              if (userData) {
+                const isFirstLogin = await get().isNewUser(userData.uid);
+                if (isFirstLogin) {
+                  // 네이버 ID를 providerId로 사용 (프로필 정보에서 추출)
+                  const naverProviderId = profileResult.response?.id || '';
+                  await get().saveUserToFirestore(userData, Provider.NAVER, naverProviderId);
+                  console.log('새 사용자 정보가 Firestore에 저장되었습니다.');
+                } else {
+                  console.log('기존 사용자입니다. Firestore에 저장하지 않습니다.');
+                }
+              }
+              
               // 로그인 상태 업데이트
               set({
                 isAuthenticated: true,
-                user: mapUserData(userCredential.user),
+                user: userData,
                 isLoading: false,
               });
               
               // AsyncStorage에 저장
               await AsyncStorage.setItem('user_logged_in', 'true');
+              await AsyncStorage.setItem('auth_token', firebaseToken);
               console.log('네이버 로그인 정보가 저장되었습니다.');
               
             } else {
@@ -397,15 +499,30 @@ export const useAuthStore = create<AuthState>()(
           const user = userCredential.user;
           console.log("Firebase 로그인 성공:", user.uid);
       
+          // 새 사용자 확인 및 Firestore에 저장
+          const userData = mapUserData(user, Provider.KAKAO);
+          if (userData) {
+            const isFirstLogin = await get().isNewUser(userData.uid);
+            if (isFirstLogin) {
+              // 카카오 ID를 providerId로 사용 (프로필 정보에서 추출)
+              const kakaoProviderId = profileResult.id?.toString() || '';
+              await get().saveUserToFirestore(userData, Provider.KAKAO, kakaoProviderId);
+              console.log('새 사용자 정보가 Firestore에 저장되었습니다.');
+            } else {
+              console.log('기존 사용자입니다. Firestore에 저장하지 않습니다.');
+            }
+          }
+          
           // 사용자 정보 저장
           set({
             isAuthenticated: true,
-            user: mapUserData(user),
+            user: userData,
             isLoading: false
           });
           
           // AsyncStorage에 사용자 정보 저장
           await AsyncStorage.setItem('user_logged_in', 'true');
+          await AsyncStorage.setItem('auth_token', firebaseToken);
           console.log('카카오 로그인 정보가 저장되었습니다.');
         } catch (error) {
           console.error("카카오 로그인 중 오류:", error);
@@ -463,9 +580,22 @@ export const useAuthStore = create<AuthState>()(
 
       // 사용자 정보 업데이트 메서드
       updateUserInfo: (user: User) => {
+        // 제공자 확인
+        let provider = Provider.KAKAO;
+        if (user.providerData && user.providerData.length > 0) {
+          const providerId = user.providerData[0].providerId;
+          if (providerId.includes('google')) {
+            provider = Provider.GOOGLE;
+          } else if (providerId.includes('apple')) {
+            provider = Provider.APPLE;
+          } else if (providerId.includes('naver')) {
+            provider = Provider.NAVER;
+          }
+        }
+
         // 상태 업데이트
         set({
-          user: mapUserData(user),
+          user: mapUserData(user, provider),
         });
 
         // AsyncStorage에 사용자 정보 저장

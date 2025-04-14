@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Platform, Linking, NativeSyntheticEvent, NativeScrollEvent, Dimensions } from 'react-native';
+import { Platform, Linking, NativeSyntheticEvent, NativeScrollEvent, Dimensions, Alert } from 'react-native';
 import { useRestaurantStore } from '../../app/store/_restaurantStore';
 import { useAuthStore } from '../../app/store/_authStore';
 import { Comment } from '../../api/models/comment';
@@ -53,11 +53,34 @@ export const useRestaurantDetailData = () => {
     // 인증 스토어에서 로그인 상태와 사용자 정보 가져오기
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const user = useAuthStore((state) => state.user);
-    
+    const [loading, setLoading] = useState(false);
+
     // 댓글 관련 상태
     const [comments, setComments] = useState<Comment[]>([]);
     const [commentText, setCommentText] = useState('');
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    // 즐겨찾기 관련 상태 추가
+    const [isFavorite, setIsFavorite] = useState(false);
+    
+    // 즐겨찾기 상태 확인 함수 추가
+    const checkFavoriteStatus = async () => {
+        if (!isAuthenticated || !user?.uid || !selectedRestaurant?.restaurantID) return;
+        
+        try {
+            const userDocRef = doc(db, "users", user.uid);
+            const userDocSnapshot = await getDoc(userDocRef);
+            
+            if (userDocSnapshot.exists()) {
+                const userData = userDocSnapshot.data();
+                const favorites = userData.favorites || [];
+                const isFav = favorites.includes(selectedRestaurant.restaurantID);
+                setIsFavorite(isFav);
+                console.log("즐겨찾기 상태 확인:", isFav);
+            }
+        } catch (error) {
+            console.error("즐겨찾기 상태 확인 중 오류 발생:", error);
+        }
+    };
 
     // 댓글 불러오기 함수
     const fetchComments = async () => {
@@ -91,6 +114,8 @@ export const useRestaurantDetailData = () => {
         // 댓글 불러오기
         if (selectedRestaurant?.restaurantID) {
             fetchComments();
+            // 즐겨찾기 상태 확인
+            checkFavoriteStatus();
         }
 
         // 컴포넌트가 언마운트될 때 선택된 레스토랑 상태 초기화
@@ -130,7 +155,7 @@ export const useRestaurantDetailData = () => {
         setActiveImageIndex(slideIndex);
     };
 
-    // 댓글 작성 함수
+    // 댓글 작성 메서드
     const handleCommentSubmit = async () => {
         if (!commentText.trim() || !isLoggedIn) return;
 
@@ -201,6 +226,74 @@ export const useRestaurantDetailData = () => {
         }
     };
 
+    // 즐겨찾기 메서드
+    const handleFavorite = async () => {
+        console.log("즐겨찾기 메서드 호출");
+        console.log("selectedRestaurant", selectedRestaurant);
+        const restaurantID = selectedRestaurant?.restaurantID;
+        const userID = user?.uid;
+        console.log("restaurantID", restaurantID);
+        console.log("userID", userID);
+
+        if (!restaurantID || !userID) {
+            console.error("레스토랑 ID 또는 사용자 ID가 없습니다.");
+            return;
+        }
+
+        try {
+            // 로딩 상태 활성화
+            setLoading(true);
+            
+            // 사용자 문서 참조 생성
+            const userDocRef = doc(db, "users", userID);
+            
+            // 사용자 문서 가져오기
+            const userDocSnapshot = await getDoc(userDocRef);
+            
+            if (userDocSnapshot.exists()) {
+                const userData = userDocSnapshot.data();
+                // 즐겨찾기 배열 가져오기 (없으면 빈 배열 사용)
+                const favorites = userData.favorites || [];
+                
+                // 현재 레스토랑이 즐겨찾기에 있는지 확인
+                const isAlreadyFavorite = favorites.includes(restaurantID);
+                
+                // 즐겨찾기 상태 토글
+                if (isAlreadyFavorite) {
+                    // 즐겨찾기에서 제거
+                    const updatedFavorites = favorites.filter((id: string) => id !== restaurantID);
+                    await setDoc(userDocRef, { ...userData, favorites: updatedFavorites }, { merge: true });
+                    console.log("즐겨찾기에서 제거되었습니다.");
+                    setIsFavorite(false);
+                    // 로딩 상태 비활성화 후 완료 알림 표시
+                    Alert.alert("알림", "즐겨찾기에서 제거되었습니다.");
+                } else {
+                    // 즐겨찾기에 추가
+                    const updatedFavorites = [...favorites, restaurantID];
+                    await setDoc(userDocRef, { ...userData, favorites: updatedFavorites }, { merge: true });
+                    console.log("즐겨찾기에 추가되었습니다.");
+                    setIsFavorite(true);
+                    // 로딩 상태 비활성화 후 완료 알림 표시
+                    Alert.alert("알림", "즐겨찾기에 추가되었습니다.");
+                }
+            } else {
+                // 사용자 문서가 없는 경우, 새로 생성
+                await setDoc(userDocRef, { favorites: [restaurantID] });
+                console.log("새 사용자 문서를 생성하고 즐겨찾기에 추가했습니다.");
+                setIsFavorite(true);
+                // 로딩 상태 비활성화 후 완료 알림 표시
+                Alert.alert("알림", "즐겨찾기에 추가되었습니다.");
+            }
+        } catch (error) {
+            console.error("즐겨찾기 처리 중 오류 발생:", error);
+            // 오류 발생 시 알림 표시
+            Alert.alert("오류", "즐겨찾기 처리 중 문제가 발생했습니다.");
+        } finally {
+            // 로딩 상태 종료
+            setLoading(false);
+        }
+    };
+
     // 이미지 배열 준비 (없으면 기본 이미지 표시)
     const imageUrls = selectedRestaurant?.imageURLs && selectedRestaurant.imageURLs.length > 0 
         ? selectedRestaurant.imageURLs 
@@ -217,11 +310,15 @@ export const useRestaurantDetailData = () => {
         comments,
         commentText,
         isLoggedIn,
+        loading,
+        isFavorite,
         handlePhoneCall,
         handleOpenMap,
         handleImageScroll,
         handleCommentSubmit,
         setCommentText,
-        formatRelativeTime
+        formatRelativeTime,
+        handleFavorite,
+         // 로딩 상태 반환
     };
 };

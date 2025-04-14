@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Linking, Platform, FlatList, Dimensions, StatusBar, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Linking, Platform, FlatList, Dimensions, StatusBar, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { RestaurantCategoryInfo } from '../../../api/models/restaurant_category';
@@ -19,12 +19,16 @@ const RestaurantDetailScreen = () => {
         comments,
         commentText,
         isLoggedIn,
+        loading,
+        isFavorite,
         handlePhoneCall,
         handleOpenMap,
         handleImageScroll,
         handleCommentSubmit,
         setCommentText,
-        formatRelativeTime
+        formatRelativeTime,
+        handleFavorite,
+    
     } = useRestaurantDetailData();
 
     const imageSection = () => {
@@ -107,9 +111,36 @@ const RestaurantDetailScreen = () => {
                         <Feather name="map" size={20} color="#4A6572" />
                         <Text style={styles.actionButtonText}>지도보기</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionButton}>
-                        <Feather name="heart" size={20} color="#4A6572" />
-                        <Text style={styles.actionButtonText}>저장</Text>
+                    <TouchableOpacity 
+                        style={styles.actionButton}
+                        onPress={() => {
+                            if (!isLoggedIn) {
+                                // 로그인하지 않은 경우 로그인 메시지 표시
+                                alert('즐겨찾기를 사용하려면 로그인이 필요합니다.');
+                            } else {
+                                // 로그인한 경우 즐겨찾기 기능 사용
+                                handleFavorite();
+                            }
+                        }}
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <ActivityIndicator size="small" color="#4A6572" />
+                        ) : (
+                            <>
+                                {isFavorite ? (
+                                    <Feather name="heart" size={20} color="#FF6B6B" />
+                                ) : (
+                                    <Feather name="heart" size={20} color="#4A6572" />
+                                )}
+                                <Text style={[
+                                    styles.actionButtonText,
+                                    isFavorite && { color: '#FF6B6B', fontWeight: 'bold' }
+                                ]}>
+                                    {isFavorite ? '저장됨' : '저장'}
+                                </Text>
+                            </>
+                        )}
                     </TouchableOpacity>
                 </View>
             </>

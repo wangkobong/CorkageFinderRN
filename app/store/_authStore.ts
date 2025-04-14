@@ -6,7 +6,8 @@ import {
   GoogleAuthProvider, 
   signOut, 
   onAuthStateChanged,
-  User
+  User,
+  Auth
 } from 'firebase/auth';
 import { auth } from '../_layout';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
@@ -22,6 +23,8 @@ import {
   logout,
   getProfile as getKakaoProfile,
 } from "@react-native-seoul/kakao-login";
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getAuth, signInWithCustomToken } from 'firebase/auth';
 
 interface UserData {
   uid: string;
@@ -42,6 +45,7 @@ interface AuthState {
   appleLogin: () => Promise<void>;
   naverLogin: () => Promise<void>;
   kakaoLogin: () => Promise<void>;
+  testConnection: () => Promise<void>;
   logout: () => Promise<void>;
   initialize: () => Promise<void>;
   clearError: () => void;
@@ -263,7 +267,6 @@ export const useAuthStore = create<AuthState>()(
 
       // 네이버 로그인 메서드 
       naverLogin: async () => {
-        console.log(NaverLogin)
         try {
           set({ isLoading: true, error: null });
           console.log('네이버 로그인 시도');
@@ -289,61 +292,51 @@ export const useAuthStore = create<AuthState>()(
             console.log('네이버 로그인 성공');
             
             // 액세스 토큰으로 프로필 정보 요청
-            const profileResult = await NaverLogin.getProfile(loginResponse.successResponse.accessToken);
+            const accessToken = loginResponse.successResponse.accessToken;
+            const profileResult = await NaverLogin.getProfile(accessToken);
             console.log('네이버 프로필 정보:', profileResult);
             
             if (profileResult.resultcode === '00' && profileResult.response) {
               // 프로필 정보 추출
               const { id, name, email, profile_image } = profileResult.response;
               
-              // 임시 사용자 정보 생성 (실제로는 Firebase Custom Token을 사용해야 함)
-              const userData: UserData = {
-                uid: `naver:${id}`,
-                displayName: name,
-                email: email,
-                photoURL: profile_image
-              };
-
-              console.log('네이버 로그인 정보:', userData);
+              // Firebase Functions에서 커스텀 토큰 발급 받기
+              const { getFunctions, httpsCallable } = require('firebase/functions');
+              const functions = getFunctions(undefined, 'us-central1'); // 리전 지정 (asia-northeast3 = 서울)
               
-              // // 상태 업데이트
-              // set({
-              //   isAuthenticated: true,
-              //   user: userData,
-              //   isLoading: false
-              // });
+              // naverCustomTokenLogin 함수 호출
+              const naverCustomTokenFunc = httpsCallable(functions, 'naverCustomTokenLogin');
               
-              // // AsyncStorage에 저장
-              // await AsyncStorage.setItem('user', JSON.stringify(userData));
-              // await AsyncStorage.setItem('user_logged_in', 'true');
-              
-              // console.log('네이버 로그인 정보가 저장되었습니다.');
-              
-              /* 
-              참고: 실제 Firebase 인증을 위해서는 서버 연동 필요
-              1. 네이버 액세스 토큰을 서버에 전송
-              2. 서버에서 Firebase Custom Token 생성
-              3. Custom Token으로 Firebase 인증
-              
-              예시:
-              const serverResponse = await fetch('https://your-server.com/create-firebase-token', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                  provider: 'naver', 
-                  token: loginResponse.successResponse.accessToken 
-                }),
+              // 네이버 프로필 정보와 액세스 토큰 전달
+              const result = await naverCustomTokenFunc({
+                accessToken,
+                id,
+                name,
+                email,
+                profile_image
               });
               
-              const { firebaseToken } = await serverResponse.json();
+              // 결과 출력
+              const { firebaseToken, newUser } = result.data;
+              console.log('발급된 Firebase 커스텀 토큰:', firebaseToken);
+              console.log('신규 사용자 여부:', newUser);
+              
+              // Firebase 인증에 토큰 사용
+              const { signInWithCustomToken } = require('firebase/auth');
               const userCredential = await signInWithCustomToken(auth, firebaseToken);
               
+              // 로그인 상태 업데이트
               set({
                 isAuthenticated: true,
                 user: mapUserData(userCredential.user),
-                isLoading: false
+                isLoading: false,
               });
-               */
+              
+              // AsyncStorage에 저장
+              // 로그인 토큰 저장
+              await AsyncStorage.setItem('auth_token', firebaseToken);
+              await AsyncStorage.setItem('user_logged_in', 'true');
+              
             } else {
               throw new Error('네이버 프로필 정보를 가져오는데 실패했습니다.');
             }
@@ -363,10 +356,76 @@ export const useAuthStore = create<AuthState>()(
       // 카카오 로그인 메서드
       kakaoLogin: async () => { 
         try {
-          const token = await login();
-          console.log('카카오 로그인 성공', token);
-        } catch (err) {
-          console.error("login err", err);
+          set({ isLoading: true, error: null });
+      
+          // 1. 카카오 로그인 호출
+          const kakaoResult = await login();
+          if (!kakaoResult || !kakaoResult.accessToken) {
+            throw new Error("카카오 로그인에 실패했습니다.");
+          }
+          
+          const accessToken = kakaoResult.accessToken;
+          
+          // 프로필 정보 가져오기
+          const profileResult = await getKakaoProfile();
+      
+          // 2. Firebase Functions 호출
+          const functions = getFunctions(undefined, "us-central1");
+      
+          // customLogin 함수 호출
+          const customLoginFunc = httpsCallable(functions, "customLogin");
+      
+          // 서버에 전달할 데이터 구성
+          const loginData = {
+            platform: "kakao",
+            accessToken: accessToken,
+            profile: profileResult  // 프로필 정보 추가
+          };
+      
+          const result = await customLoginFunc(loginData);
+          console.log("customLogin 결과:", result.data);
+      
+          // 3. Firebase Authentication 로그인
+          const { firebaseToken } = result.data as { firebaseToken: string, success: boolean, message: string };
+          if (!firebaseToken) {
+            throw new Error("Firebase 커스텀 토큰이 반환되지 않았습니다.");
+          }
+      
+          // Firebase에 로그인
+          const userCredential = await signInWithCustomToken(auth, firebaseToken);
+          const user = userCredential.user;
+          console.log("Firebase 로그인 성공:", user.uid);
+      
+          // 사용자 정보 저장
+          set({
+            isAuthenticated: true,
+            user: mapUserData(user),
+            isLoading: false
+          });
+          
+          // AsyncStorage에 사용자 정보 저장
+          await AsyncStorage.setItem('user_logged_in', 'true');
+          console.log('카카오 로그인 정보가 저장되었습니다.');
+        } catch (error) {
+          console.error("카카오 로그인 중 오류:", error);
+          if (error instanceof Error) {
+            console.error("오류 메시지:", error.message);
+            console.error("오류 스택:", error.stack);
+          }
+          if (error && typeof error === "object" && "code" in error) {
+            console.error("Firebase 오류 코드:", error.code);
+            console.error(
+              "Firebase 오류 상세:",
+              "details" in error ? error.details : "상세 정보 없음"
+            );
+          }
+          set({
+            isLoading: false,
+            error:
+              error instanceof Error
+                ? error.message
+                : "카카오 로그인 중 오류가 발생했습니다.",
+          });
         }
       },
       // 로그아웃 메서드
@@ -419,6 +478,59 @@ export const useAuthStore = create<AuthState>()(
 
       // 오류 초기화 메서드
       clearError: () => set({ error: null }),
+
+      // 테스트 연결 메서드
+      testConnection: async () => {
+        try {
+          set({ isLoading: true, error: null });
+          console.log('테스트 연결 시작');
+          
+          // Firebase Functions에서 테스트 함수 호출
+          const functions = getFunctions(undefined, 'us-central1');
+          console.log('Firebase Functions 모듈 로드됨');
+          const connectTestFunc = httpsCallable(functions, 'connectTest');
+          console.log('connectTest 함수 생성됨');
+
+          const testData = {
+            test: true,
+            timestamp: new Date().toISOString(),
+            device: 'React Native App'
+          };
+          
+          console.log('테스트 데이터:', testData);
+          const result = await connectTestFunc(testData);
+          
+          console.log('테스트 연결 결과:', result.data);
+          
+          // 로딩 상태 업데이트
+          set({
+            isLoading: false
+          });
+          
+          // void 타입으로 맞추기 위해 명시적인 반환 없음
+        } catch (error) {
+          console.error('테스트 연결 중 오류:', error);
+          // 오류 상세 정보 출력
+          if (error instanceof Error) {
+            console.error('오류 메시지:', error.message);
+            console.error('오류 스택:', error.stack);
+          }
+          
+          // Firebase 오류인 경우 더 자세한 정보 출력
+          if (error && typeof error === 'object' && 'code' in error) {
+            console.error('Firebase 오류 코드:', error.code);
+          }
+          
+          if (error && typeof error === 'object' && 'details' in error) {
+            console.error('Firebase 오류 상세:', error.details);
+          }
+          
+          set({ 
+            isLoading: false, 
+            error: error instanceof Error ? error.message : '테스트 연결 중 오류가 발생했습니다.'
+          });
+        }
+      },
     }),
     {
       name: 'auth-storage', // 스토리지 키 이름

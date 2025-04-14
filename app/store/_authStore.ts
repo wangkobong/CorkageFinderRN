@@ -301,29 +301,31 @@ export const useAuthStore = create<AuthState>()(
               const { id, name, email, profile_image } = profileResult.response;
               
               // Firebase Functions에서 커스텀 토큰 발급 받기
-              const { getFunctions, httpsCallable } = require('firebase/functions');
-              const functions = getFunctions(undefined, 'us-central1'); // 리전 지정 (asia-northeast3 = 서울)
+              const functions = getFunctions(undefined, 'us-central1');
               
-              // naverCustomTokenLogin 함수 호출
-              const naverCustomTokenFunc = httpsCallable(functions, 'naverCustomTokenLogin');
+              // customLogin 함수 호출 (naverCustomTokenLogin 대신)
+              const customLoginFunc = httpsCallable(functions, 'customLogin');
               
               // 네이버 프로필 정보와 액세스 토큰 전달
-              const result = await naverCustomTokenFunc({
-                accessToken,
-                id,
-                name,
-                email,
-                profile_image
-              });
+              const loginData = {
+                platform: 'naver',
+                accessToken: accessToken,
+                profile: profileResult.response  // 프로필 정보 추가
+              };
+              
+              const result = await customLoginFunc(loginData);
+              console.log('customLogin 결과:', result.data);
               
               // 결과 출력
-              const { firebaseToken, newUser } = result.data;
-              console.log('발급된 Firebase 커스텀 토큰:', firebaseToken);
-              console.log('신규 사용자 여부:', newUser);
+              const { firebaseToken } = result.data as { firebaseToken: string, success: boolean, message: string };
+              if (!firebaseToken) {
+                throw new Error('Firebase 커스텀 토큰이 반환되지 않았습니다.');
+              }
               
               // Firebase 인증에 토큰 사용
-              const { signInWithCustomToken } = require('firebase/auth');
               const userCredential = await signInWithCustomToken(auth, firebaseToken);
+              const user = userCredential.user;
+              console.log('Firebase 로그인 성공:', user.uid);
               
               // 로그인 상태 업데이트
               set({
@@ -333,9 +335,8 @@ export const useAuthStore = create<AuthState>()(
               });
               
               // AsyncStorage에 저장
-              // 로그인 토큰 저장
-              await AsyncStorage.setItem('auth_token', firebaseToken);
               await AsyncStorage.setItem('user_logged_in', 'true');
+              console.log('네이버 로그인 정보가 저장되었습니다.');
               
             } else {
               throw new Error('네이버 프로필 정보를 가져오는데 실패했습니다.');

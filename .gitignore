@@ -84,8 +84,6 @@ yarn-error.*
 
 # @end expo-cli
 
-/ios
-/android
 # iOS 빌드 관련
 ios/build/
 ios/Pods/

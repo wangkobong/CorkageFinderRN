@@ -3,10 +3,10 @@ import { View, Text, FlatList, StyleSheet, TouchableOpacity, SafeAreaView, Scrol
 import { RestaurantCard } from '@/api/models/restaurant';   
 import { useRestaurantListData, SortOption } from '@/hooks/home/useRestaurantListData';
 import { HomeRestaurantCategory, RestaurantCategoryInfo } from '@/api/models/restaurant_category';
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useRestaurantStore } from '@/app/store/_restaurantStore';
-import { Image } from 'expo-image';
+import RestaurantCardView from '@/app/screens/home/component/restaurant_card';
 
 interface RestaurantListScreenProps {
   category?: HomeRestaurantCategory;
@@ -137,42 +137,10 @@ const RestaurantListScreen: React.FC<RestaurantListScreenProps> = ({
   );
 
   const renderRestaurantItem = ({ item }: { item: RestaurantCard }) => (
-    <TouchableOpacity 
-      style={styles.restaurantItem} 
-      activeOpacity={0.7}
-      onPress={() => handleRestaurantPress(item)}
-    >
-      <Image 
-        source={{ uri: item.imageURLs?.[0] || 'https://via.placeholder.com/100' }} 
-        style={styles.restaurantImage} 
-        cachePolicy={'disk'}
-      />
-      <View style={styles.restaurantInfo}>
-        <Text style={styles.restaurantName}>{item.name}</Text>
-        
-        <View style={styles.infoRow}>
-          <Feather name="tag" size={14} color="#555" />
-          <Text style={styles.restaurantCategory}>{RestaurantCategoryInfo.getTitle(item.category)}</Text>
-        </View>
-        
-        <View style={styles.infoRow}>
-          <Feather name="dollar-sign" size={14} color="#6200ee" />
-          <Text style={styles.restaurantCorkage}>
-            {item.isCorkageFree ? '콜키지 무료' : `콜키지 비용: ${item.corkageFee}`}
-          </Text>
-        </View>
-        
-        <View style={styles.infoRow}>
-          <Feather name="phone" size={14} color="#444" />
-          <Text style={styles.restaurantPhone}>{item.phoneNumber || '전화번호 정보 없음'}</Text>
-        </View>
-        
-        <View style={styles.infoRow}>
-          <Feather name="map-pin" size={14} color="#888" />
-          <Text style={styles.restaurantAddress}>{item.address}</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
+    <RestaurantCardView 
+      restaurant={item}
+      onPress={handleRestaurantPress}
+    />
   );
 
   const restaurantListSection = () => (
@@ -261,46 +229,45 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#fff',
     },
-    restaurantCategorySection: {
-        backgroundColor: '#fff',
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 3,
-        elevation: 3,
+    titleSection: {
+        paddingHorizontal: 20,
+        paddingTop: 20,
+        paddingBottom: 15,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        zIndex: 1,
+    },
+    backButton: {
+        padding: 10,
+    },
+    title: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: '#333',
+    },
+    restaurantCategorySection: {
+        paddingVertical: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
     },
     restaurantCategoryScrollContainer: {
-        paddingHorizontal: 15,
-        flexDirection: 'row',
+        paddingHorizontal: 20,
     },
     restaurantCategoryTab: {
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        marginRight: 10,
-        marginLeft: 2,
-        borderRadius: 25,
-        backgroundColor: '#f9f9f9',
         flexDirection: 'row',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#f0f0f0',
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 20,
+        marginRight: 10,
+        backgroundColor: '#f5f5f5',
     },
     selectedRestaurantCategoryTab: {
-        backgroundColor: '#FF6347', // 토마토 레드 컬러
-        borderColor: '#FF6347',
+        backgroundColor: '#4A6FE7',
     },
     restaurantCategoryTabText: {
         fontSize: 14,
-        fontWeight: '600',
         color: '#555',
-        marginLeft: 6,
     },
     selectedRestaurantCategoryTabText: {
         color: '#fff',
@@ -310,73 +277,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 16,
         paddingVertical: 8,
-        marginRight: 15,
         borderRadius: 20,
-        backgroundColor: '#f5f5f5',
-        minWidth: 70,
-        justifyContent: 'center',
+        backgroundColor: '#f0f0f0',
+        marginRight: 20,
     },
     filterButtonText: {
-        marginLeft: 5,
         fontSize: 14,
         color: '#444',
+        marginLeft: 5,
     },
     listContainer: {
         padding: 16,
-    },
-    restaurantItem: {
-        flexDirection: 'row',
-        marginBottom: 20,
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        padding: 14,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
-    },
-    restaurantImage: {
-        width: 85,
-        height: 85,
-        borderRadius: 8,
-        marginRight: 16,
-    },
-    restaurantInfo: {
-        flex: 1,
-        justifyContent: 'center',
-    },
-    infoRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 4,
-    },
-    restaurantName: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 6,
-        letterSpacing: 0.3,
-    },
-    restaurantCategory: {
-        fontSize: 14,
-        color: '#555',
-        marginLeft: 6,
-    },
-    restaurantCorkage: {
-        fontSize: 15,
-        fontWeight: '500',
-        color: '#6200ee',
-        marginLeft: 6,
-    },
-    restaurantPhone: {
-        fontSize: 13,
-        color: '#444',
-        marginLeft: 6,
-    },
-    restaurantAddress: {
-        fontSize: 12,
-        color: '#888',
-        marginLeft: 6,
     },
     loadingText: {
         padding: 20,

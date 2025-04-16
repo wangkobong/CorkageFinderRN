@@ -9,7 +9,8 @@ export default function FavoriteRestaurantsPage() {
         options={{
           headerTitle: "즐겨찾는 레스토랑",
           headerBackTitle: "마이페이지",
-          headerShown: true
+          headerShown: true,
+          headerShadowVisible: false,
         }}
       />
       <FavoriteListScreen />

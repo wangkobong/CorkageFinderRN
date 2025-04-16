@@ -1,4 +1,3 @@
-import React from 'react';
 import { Stack } from 'expo-router';
 import PendingRestaurantDetailScreen from '../screens/my_page/pending_restaurant_detail.screen';
 

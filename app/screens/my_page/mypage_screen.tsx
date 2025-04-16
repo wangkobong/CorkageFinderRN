@@ -155,10 +155,10 @@ const MyPageScreen = () => {
       </TouchableOpacity>
     </View>
             
-            <Text style={styles.termsText}>
+            {/* <Text style={styles.termsText}>
                 로그인함으로써 <Text style={styles.termsLink}>이용약관</Text>과 <Text style={styles.termsLink}>개인정보 처리방침</Text>에 동의합니다.
-            </Text>
-        </View>
+            </Text> */}
+    </View>
     );
 
     // 마이페이지 화면 렌더링

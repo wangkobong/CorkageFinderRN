@@ -23,6 +23,7 @@ export interface RestaurantCard {
     breaktime: string;
     drinkCategories: DrinkCategory[];
     comments: Comment[];
+    registerUserID: string;
 }
 
 export class RestaurantCardImpl implements RestaurantCard {
@@ -46,8 +47,8 @@ export class RestaurantCardImpl implements RestaurantCard {
         public isBreaktime: boolean,
         public breaktime: string,
         public drinkCategories: DrinkCategory[],
-        public comments: Comment[]  
-
+        public comments: Comment[],
+        public registerUserID: string
     ) {}
 
     // 필요한 경우 여기에 추가 메서드를 구현할 수 있습니다

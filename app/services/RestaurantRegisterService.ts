@@ -110,7 +110,8 @@ export class RestaurantRegisterService {
             longitude: data.longitude || 0.0,
             isBreaktime: data.isBreaktime,
             breaktime: data.breaktime,
-            drinkCategories: data.drinkCategories
+            drinkCategories: data.drinkCategories,
+            registerUserID: data.registerUserID
         });
         
         console.log("Restaurant added with ID:", data.restaurantID);

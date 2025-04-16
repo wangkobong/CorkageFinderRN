@@ -30,7 +30,7 @@ import { auth } from '../../_layout';
 import { onAuthStateChanged } from 'firebase/auth';
 import { DrinkCategory, DRINK_CATEGORIES } from '../../../api/models/drink_category';
 import { RestaurantCard, RestaurantCardImpl } from '../../../api/models/restaurant';
-
+import { useAuthStore } from '../../store/_authStore';
 // 섹션 헤더 컴포넌트
 const SectionHeader = ({ title }: { title: string }) => (
   <View style={styles.sectionHeader}>
@@ -530,8 +530,11 @@ const RegisterScreen = () => {
             // 4. 레스토랑 데이터 객체 생성
             const categoryEnum = getCategoryEnum();
             
-            // 타임스탬프 기반 ID 생성 (현재 시간의 밀리초 단위)
+            // 현재 시간의 밀리초 단위 타임스탬프 ID 생성
             const timestampId = Date.now().toString();
+            
+            // useAuthStore로부터 user 가져오기 (컴포넌트 외부에서 호출하는 것이 아닌 컴포넌트 내부에서 사용)
+            const registerUserID = useAuthStore.getState().user?.uid || '';
             
             // RestaurantCardImpl 생성자를 사용하여 RestaurantCard 객체 생성
             const restaurantData: RestaurantCard = new RestaurantCardImpl(
@@ -554,7 +557,8 @@ const RegisterScreen = () => {
                 isBreakTimeEnabled,
                 isBreakTimeEnabled ? breakTime : '',
                 selectedDrinkCategories,
-                [] // 선택된 음료 카테고리 배열
+                [], // 선택된 음료 카테고리 배열
+                registerUserID // 등록한 사용자의 ID
             );
             
             // 5. Firestore에 레스토랑 데이터 저장 (이제 id 필드에 timestampId가 포함됨)

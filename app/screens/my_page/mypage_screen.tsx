@@ -1,60 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Stack } from 'expo-router';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Modal, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';  
 import { TitleText } from '../../components/title_text';
 import { Ionicons } from '@expo/vector-icons';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { useRouter, router } from 'expo-router';
-
-// 인증 스토어 import
-import { useAuthStore } from '../../store/_authStore';
-
-// 미리 컴포넌트 import
-import PendingRestaurantsScreen from './peding_restaurants.screen';
-
-GoogleSignin.configure({
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID, // 파이어베이스 콘솔에서 받은 웹 클라이언트 ID
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID, // Google Cloud Console에서 받은 iOS 클라이언트 ID
-  });
+import { useMypageData } from '../../../hooks/mypage/useMypageData';
 
 const MyPageScreen = () => {
-    const router = useRouter();
-
-    // 인증 스토어에서 상태와 메서드 가져오기
-    const { 
-        isAuthenticated, 
-        user, 
-        isLoading, 
-        error, 
-        googleLogin, 
-        appleLogin,
-        naverLogin,
-        kakaoLogin,
-        logout 
-    } = useAuthStore();
-
-    // 사용자 정보 상태 관리 (표시용)
-    const [userInfo, setUserInfo] = useState({
-        name: '',
-        email: '',
-        profileImage: '',
-    });
-
-    // 준비중 팝업 상태
-    const [isFeaturePopupVisible, setIsFeaturePopupVisible] = useState(false);
-    const [popupMessage, setPopupMessage] = useState('');
-
-    // 사용자 정보 업데이트
-    useEffect(() => {
-        if (user) {
-            setUserInfo({
-                name: user.displayName || '사용자',
-                email: user.email || '',
-                profileImage: user.photoURL || 'https://via.placeholder.com/100',
-            });
-        }
-    }, [user]);
+    // useMypageData 훅 사용
+    const {
+        isAuthenticated,
+        isLoading,
+        userInfo,
+        isFeaturePopupVisible,
+        popupMessage,
+        handleGoogleLogin,
+        handleAppleLogin,
+        handleKakaoLogin,
+        handleNaverLogin,
+        handleLogout,
+        handleFavoriteRestaurants,
+        handleReviewManagement,
+        handleApprove,
+        closeFeaturePopup
+    } = useMypageData();
 
     // 메뉴 항목 렌더링 함수
     const renderMenuItem = (icon: string, title: string, onPress: () => void) => (
@@ -64,54 +33,6 @@ const MyPageScreen = () => {
             <Ionicons name="chevron-forward" size={20} color="#ccc" />
         </TouchableOpacity>
     );
-
-    // 구글 로그인 핸들러
-    const handleGoogleLogin = async () => {
-        await googleLogin();
-    };
-
-    // 애플 로그인 핸들러
-    const handleAppleLogin = async () => {
-        await appleLogin();
-    };
-
-        // 카카오 로그인 핸들러 추가
-    const handleKakaoLogin = async () => {
-        await kakaoLogin();
-    };
-    
-    // 네이버 로그인 핸들러 추가
-    const handleNaverLogin = async () => {
-        await naverLogin();
-    };
-
-    // 로그아웃 핸들러
-    const handleLogout = async () => {
-        await logout();
-    };
-
-    // 준비중 기능 팝업 표시 핸들러
-    const showFeatureInProgressPopup = (featureName: string) => {
-        setPopupMessage(`${featureName} 기능은 현재 준비중입니다.`);
-        setIsFeaturePopupVisible(true);
-    };
-
-    // 찜한 식당 클릭 핸들러
-    const handleFavoriteRestaurants = () => {
-        showFeatureInProgressPopup('찜한 식당');
-    };
-
-    // 리뷰 관리 클릭 핸들러
-    const handleReviewManagement = () => {
-        showFeatureInProgressPopup('리뷰 관리');
-    };
-
-    // 승인하기 버튼 처리 함수
-    const handleApprove = () => {
-        console.log('승인하기 버튼 클릭됨');
-        // 올바른 라우팅 경로 사용 (이제 파일 이름이 mypage/pending-restaurants.tsx로 생성됨)
-        router.push("/mypage/pending-restaurants");
-    };
 
     // 로그인 화면 렌더링
     const renderLoginScreen = () => (
@@ -208,25 +129,6 @@ const MyPageScreen = () => {
             {/* 구분선 */}
             <View style={styles.divider} />
 
-            {/* 설정 섹션 */}
-            {/* <View style={styles.section}>
-                <Text style={styles.sectionTitle}>설정</Text>
-                {renderMenuItem('notifications-outline', '알림 설정', () => {})}
-                {renderMenuItem('location-outline', '위치 설정', () => {})}
-                {renderMenuItem('lock-closed-outline', '개인정보 설정', () => {})}
-            </View> */}
-
-            {/* 구분선 */}
-            {/* <View style={styles.divider} /> */}
-
-            {/* 고객 지원 섹션 */}
-            {/* <View style={styles.section}>
-                <Text style={styles.sectionTitle}>고객 지원</Text>
-                {renderMenuItem('help-circle-outline', '자주 묻는 질문', () => {})}
-                {renderMenuItem('chatbubble-outline', '1:1 문의', () => {})}
-                {renderMenuItem('information-circle-outline', '앱 정보', () => {})}
-            </View> */}
-
             {/* 로그아웃 버튼 */}
             <TouchableOpacity 
                 style={styles.logoutButton}
@@ -265,7 +167,7 @@ const MyPageScreen = () => {
                 visible={isFeaturePopupVisible}
                 transparent={true}
                 animationType="fade"
-                onRequestClose={() => setIsFeaturePopupVisible(false)}
+                onRequestClose={closeFeaturePopup}
             >
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
@@ -273,7 +175,7 @@ const MyPageScreen = () => {
                         <Text style={styles.modalMessage}>{popupMessage}</Text>
                         <TouchableOpacity 
                             style={styles.modalButton}
-                            onPress={() => setIsFeaturePopupVisible(false)}
+                            onPress={closeFeaturePopup}
                         >
                             <Text style={styles.modalButtonText}>확인</Text>
                         </TouchableOpacity>

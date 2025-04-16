@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Image, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { RestaurantCard } from '../../../../api/models/restaurant';
 import { RestaurantCategoryInfo } from '../../../../api/models/restaurant_category';
-
+import { Image } from 'expo-image';
 interface RestaurantMiniCardProps {
   restaurant: Partial<RestaurantCard>;
   onPress?: (restaurant: RestaurantCard) => void;
@@ -25,7 +25,7 @@ const RestaurantMiniCardView: React.FC<RestaurantMiniCardProps> = ({
         <Image 
           source={{ uri: restaurant.imageURLs?.[0] || 'https://via.placeholder.com/150' }} 
           style={styles.image}
-          resizeMode="cover"
+          cachePolicy={'disk'}
         />
       </View>
       <View style={styles.infoContainer}>

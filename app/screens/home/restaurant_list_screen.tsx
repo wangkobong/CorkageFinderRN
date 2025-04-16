@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Image, Modal } from 'react-native'; 
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Modal } from 'react-native'; 
 import { RestaurantCard } from '@/api/models/restaurant';   
 import { useRestaurantListData, SortOption } from '@/hooks/home/useRestaurantListData';
 import { HomeRestaurantCategory, RestaurantCategoryInfo } from '@/api/models/restaurant_category';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useRestaurantStore } from '@/app/store/_restaurantStore';
-
+import { Image } from 'expo-image';
 
 interface RestaurantListScreenProps {
   category?: HomeRestaurantCategory;
@@ -145,6 +145,7 @@ const RestaurantListScreen: React.FC<RestaurantListScreenProps> = ({
       <Image 
         source={{ uri: item.imageURLs?.[0] || 'https://via.placeholder.com/100' }} 
         style={styles.restaurantImage} 
+        cachePolicy={'disk'}
       />
       <View style={styles.restaurantInfo}>
         <Text style={styles.restaurantName}>{item.name}</Text>

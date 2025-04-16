@@ -1,11 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Linking, Platform, FlatList, Dimensions, StatusBar, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Platform, FlatList, Dimensions, StatusBar, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { RestaurantCategoryInfo } from '../../../api/models/restaurant_category';
 import { useRestaurantDetailData } from '../../../hooks/common/useRestaurantDetailData';
 import { DRINK_CATEGORIES } from '../../../api/models/drink_category';
 import { useAuthStore } from '../../../app/store/_authStore';
+import { Image } from 'expo-image';
+
 
 const { width } = Dimensions.get('window');
 
@@ -47,6 +49,7 @@ const RestaurantDetailScreen = () => {
                         <Image 
                             source={{ uri: item }} 
                             style={styles.sliderImage} 
+                            cachePolicy={'memory'}
                         />
                     )}
                     keyExtractor={(item, index) => `image-${index}`}

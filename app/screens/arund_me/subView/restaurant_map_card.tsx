@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { RestaurantCard } from '../../../../api/models/restaurant';
 import { RestaurantCategoryInfo } from '../../../../api/models/restaurant_category';
 import { HomeRestaurantCategory } from '../../../../api/models/restaurant_category';
 import { useRouter } from 'expo-router';
 import { useRestaurantStore } from '@/app/store/_index';
-
+import { Image } from 'expo-image';
 
 interface RestaurantMiniCardProps {
     restaurant: Partial<RestaurantCard>;
@@ -31,7 +31,7 @@ const RestaurantMapCard: React.FC<RestaurantMiniCardProps> = ({ restaurant, onPr
 
     return (
         <TouchableOpacity style={styles.container} onPress={handlePress} activeOpacity={0.8}>
-            <Image source={{ uri: restaurant.imageURLs?.[0] || 'https://via.placeholder.com/150' }} style={styles.image} />
+            <Image source={{ uri: restaurant.imageURLs?.[0] || 'https://via.placeholder.com/150' }} style={styles.image} cachePolicy={'memory'} />
             <View style={styles.infoContainer}>
                 <Text style={styles.name}>🍽️ {restaurant.name}</Text>
                 <Text style={styles.type}>🏷️ {RestaurantCategoryInfo.getTitle(restaurant.category as HomeRestaurantCategory)}</Text>

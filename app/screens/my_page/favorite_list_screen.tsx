@@ -1,134 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, TextInput } from 'react-native';
-import { useMypageData } from '../../../hooks/mypage/useMypageData';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { RestaurantCard } from '@/api/models/restaurant';
-import { RestaurantCategoryInfo, HomeRestaurantCategory } from '@/api/models/restaurant_category';
-import { DrinkCategory } from '@/api/models/drink_category';
 import RestaurantCardView from '@/app/screens/home/component/restaurant_card';
+import { useMyfavoriteData } from '../../../hooks/mypage/useMyfavoriteData';
 
 const FavoriteListScreen = () => {
-    const router = useRouter();
-    const [searchQuery, setSearchQuery] = useState('');
-    const [favoriteRestaurants, setFavoriteRestaurants] = useState<RestaurantCard[]>([]);
-    const [filteredRestaurants, setFilteredRestaurants] = useState<RestaurantCard[]>([]);
-    const [selectedFilter, setSelectedFilter] = useState<string>('all');
-    const [loading, setLoading] = useState(true);
-
-    // 즐겨찾기 레스토랑 데이터 가져오기 (임시 데이터, 실제로는 useMypageData에서 가져올 것)
-    useEffect(() => {
-        // 여기서 실제 데이터를 가져오는 로직이 들어갈 것입니다
-        // 임시 데이터로 대체
-        const tempData: RestaurantCard[] = [
-            {
-                restaurantID: '1',
-                name: '와인바 오월',
-                category: HomeRestaurantCategory.WESTERN,
-                address: '서울특별시 강남구 역삼동 123-45',
-                phoneNumber: '02-1234-5678',
-                corkageFee: '30,000원',
-                isCorkageFree: false,
-                imageURLs: ['https://via.placeholder.com/100'],
-                sido: '서울',
-                sigungu: '강남구',
-                addressDetail: '역삼동 123-45',
-                businessHours: '12:00 - 22:00',
-                closedDays: '월요일',
-                corkageNote: '와인 한 병당 30,000원',
-                isBreaktime: false,
-                breaktime: '',
-                drinkCategories: [],
-                comments: [],
-                registerUserID: 'user1'
-            },
-            {
-                restaurantID: '2',
-                name: '스시 오마카세',
-                category: HomeRestaurantCategory.JAPANESE,
-                address: '서울특별시 서초구 서초동 234-56',
-                phoneNumber: '02-2345-6789',
-                corkageFee: '50,000원',
-                isCorkageFree: false,
-                imageURLs: ['https://via.placeholder.com/100'],
-                sido: '서울',
-                sigungu: '서초구',
-                addressDetail: '서초동 234-56',
-                businessHours: '17:00 - 23:00',
-                closedDays: '일요일',
-                corkageNote: '일본 사케만 반입 가능, 병당 50,000원',
-                isBreaktime: false,
-                breaktime: '',
-                drinkCategories: [],
-                comments: [],
-                registerUserID: 'user2'
-            },
-            {
-                restaurantID: '3',
-                name: '콜키지 프리 레스토랑',
-                category: HomeRestaurantCategory.WESTERN,
-                address: '서울특별시 강남구 청담동 345-67',
-                phoneNumber: '02-3456-7890',
-                corkageFee: '0원',
-                isCorkageFree: true,
-                imageURLs: ['https://via.placeholder.com/100'],
-                sido: '서울',
-                sigungu: '강남구',
-                addressDetail: '청담동 345-67',
-                businessHours: '11:30 - 21:30',
-                closedDays: '화요일',
-                corkageNote: '콜키지 무료',
-                isBreaktime: true,
-                breaktime: '15:00 - 17:00',
-                drinkCategories: [],
-                comments: [],
-                registerUserID: 'user3'
-            },
-        ];
-        
-        setFavoriteRestaurants(tempData);
-        setFilteredRestaurants(tempData);
-        setLoading(false);
-    }, []);
-
-    // 검색어에 따른 필터링
-    useEffect(() => {
-        if (searchQuery.trim() === '') {
-            filterRestaurantsByCategory(selectedFilter);
-        } else {
-            const filtered = favoriteRestaurants.filter(
-                (restaurant) => 
-                    restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-                    (selectedFilter === 'all' || restaurant.category === selectedFilter)
-            );
-            setFilteredRestaurants(filtered);
-        }
-    }, [searchQuery, selectedFilter, favoriteRestaurants]);
-
-    // 카테고리별 필터링
-    const filterRestaurantsByCategory = (category: string) => {
-        setSelectedFilter(category);
-        if (category === 'all') {
-            setFilteredRestaurants(favoriteRestaurants);
-        } else {
-            const filtered = favoriteRestaurants.filter(
-                (restaurant) => restaurant.category === category
-            );
-            setFilteredRestaurants(filtered);
-        }
-    };
-
-    // 레스토랑 클릭 핸들러
-    const handleRestaurantPress = (restaurant: RestaurantCard) => {
-        // 레스토랑 상세 페이지로 이동
-        router.push({
-            pathname: `/home/restaurant-detail`,
-            params: { 
-                restaurantName: restaurant.name,
-                backButtonTitle: "즐겨찾기" 
-            }
-        });
-    };
+    const { 
+        loading, 
+        error, 
+        filteredRestaurants, 
+        searchQuery, 
+        selectedFilter,
+        categories, 
+        handleTapFavoriteRestaurant, 
+        filterRestaurantsByCategory,
+        handleSearchChange,
+        clearSearch
+    } = useMyfavoriteData();
 
     const searchBarSection = () => {
         return (
@@ -139,11 +28,11 @@ const FavoriteListScreen = () => {
                         style={styles.searchInput}
                         placeholder="레스토랑 이름 검색"
                         value={searchQuery}
-                        onChangeText={setSearchQuery}
+                        onChangeText={handleSearchChange}
                         placeholderTextColor="#999"
                     />
                     {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                        <TouchableOpacity onPress={clearSearch}>
                             <Ionicons name="close-circle" size={20} color="#999" />
                         </TouchableOpacity>
                     )}
@@ -153,16 +42,6 @@ const FavoriteListScreen = () => {
     }
 
     const filterSection = () => {
-        const categories = [
-            { id: 'all', name: '전체' },
-            { id: HomeRestaurantCategory.KOREAN, name: '한식' },
-            { id: HomeRestaurantCategory.JAPANESE, name: '일식' },
-            { id: HomeRestaurantCategory.CHINESE, name: '중식' },
-            { id: HomeRestaurantCategory.WESTERN, name: '양식' },
-            { id: HomeRestaurantCategory.ASIAN, name: '아시안' },
-            { id: HomeRestaurantCategory.ETC, name: '기타' },
-        ];
-
         return (
             <View style={styles.filterSection}>
                 <FlatList
@@ -197,7 +76,7 @@ const FavoriteListScreen = () => {
     const renderRestaurantItem = ({ item }: { item: RestaurantCard }) => (
         <RestaurantCardView 
             restaurant={item}
-            onPress={handleRestaurantPress}
+            onPress={() => handleTapFavoriteRestaurant(item)}
         />
     );
 
@@ -207,6 +86,11 @@ const FavoriteListScreen = () => {
                 {loading ? (
                     <View style={styles.centerContent}>
                         <Text style={styles.loadingText}>로딩 중...</Text>
+                    </View>
+                ) : error ? (
+                    <View style={styles.centerContent}>
+                        <Ionicons name="alert-circle-outline" size={50} color="#ccc" />
+                        <Text style={styles.emptyText}>{error}</Text>
                     </View>
                 ) : filteredRestaurants.length === 0 ? (
                     <View style={styles.centerContent}>

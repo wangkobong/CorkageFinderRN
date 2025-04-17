@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Platform, FlatList, Dimensions, StatusBar, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Platform, FlatList, Dimensions, StatusBar, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { RestaurantCategoryInfo } from '../../../api/models/restaurant_category';
@@ -22,6 +22,7 @@ const RestaurantDetailScreen = () => {
         commentText,
         isLoggedIn,
         loading,
+        deletingCommentId,
         isFavorite,
         handlePhoneCall,
         handleOpenMap,
@@ -30,7 +31,8 @@ const RestaurantDetailScreen = () => {
         setCommentText,
         formatRelativeTime,
         handleFavorite,
-    
+        handleDeleteComment,
+        isCurrentUserComment,
     } = useRestaurantDetailData();
 
     const imageSection = () => {
@@ -293,7 +295,22 @@ const RestaurantDetailScreen = () => {
                                     <Text style={styles.commentUserName}>{comment.userName}</Text>
                                     <Text style={styles.commentDate}>{formatRelativeTime(comment.createdAt)}</Text>
                                 </View>
-                                <Text style={styles.commentContent}>{comment.content}</Text>
+                                <View style={styles.commentContentContainer}>
+                                    <Text style={styles.commentContent}>{comment.content}</Text>
+                                    {isCurrentUserComment(comment.userId) && (
+                                        <TouchableOpacity 
+                                            style={styles.deleteButton}
+                                            onPress={() => handleDeleteComment(comment.id)}
+                                            disabled={deletingCommentId === comment.id}
+                                        >
+                                            {deletingCommentId === comment.id ? (
+                                                <ActivityIndicator size="small" color="#FF6B6B" />
+                                            ) : (
+                                                <Feather name="trash-2" size={15} color="#FF6B6B" />
+                                            )}
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
                             </View>
                         ))}
                     </View>
@@ -320,10 +337,14 @@ const RestaurantDetailScreen = () => {
                                 styles.commentSubmitButton,
                                 !commentText.trim() && styles.commentSubmitButtonDisabled
                             ]}
-                            disabled={!commentText.trim()}
+                            disabled={!commentText.trim() || loading}
                             onPress={handleCommentSubmit}
                         >
-                            <Feather name="send" size={18} color={commentText.trim() ? "#fff" : "#ccc"} />
+                            {loading ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                                <Feather name="send" size={18} color={commentText.trim() ? "#fff" : "#ccc"} />
+                            )}
                         </TouchableOpacity>
                     </View>
                 ) : (
@@ -660,10 +681,20 @@ const styles = StyleSheet.create({
         paddingVertical: 3,
         borderRadius: 12,
     },
+    commentContentContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
     commentContent: {
         fontSize: 14,
         color: '#333',
         lineHeight: 20,
+        flex: 1,
+    },
+    deleteButton: {
+        padding: 5,
+        marginLeft: 10,
     },
     noCommentsContainer: {
         alignItems: 'center',

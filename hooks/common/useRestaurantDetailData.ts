@@ -54,6 +54,8 @@ export const useRestaurantDetailData = () => {
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const user = useAuthStore((state) => state.user);
     const [loading, setLoading] = useState(false);
+    // 댓글 삭제 로딩 상태를 관리하는 상태 추가
+    const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
 
     // 댓글 관련 상태
     const [comments, setComments] = useState<Comment[]>([]);
@@ -159,29 +161,29 @@ export const useRestaurantDetailData = () => {
     const handleCommentSubmit = async () => {
         if (!commentText.trim() || !isLoggedIn) return;
 
+        // restaurantID 확인
+        const restaurantID = selectedRestaurant?.restaurantID;
+        if (!restaurantID) {
+            Alert.alert("알림", "레스토랑 정보를 찾을 수 없습니다.");
+            return;
+        }
+
+        // 로딩 상태 활성화
+        setLoading(true);
+
         // 새로운 댓글 객체 생성 (현재 로그인한 사용자 정보 사용)
         const newComment: Comment = {
             id: String(Date.now()),
             content: commentText,
             userName: user?.displayName || '사용자',
-            userProfileImage: user?.photoURL || undefined,
+            userProfileImage: user?.photoURL || '',
             createdAt: new Date().toISOString(),
             userId: user?.uid || '1',
         };
 
         try {
-            // 파이어스토어에서 레스토랑 문서 참조
-            const restaurantsSnapshot = await getDocs(collection(db, "apporved"));
-            console.log("restaurantDoc", restaurantsSnapshot);
-            console.log("selectedRestaurant", selectedRestaurant);
-            // 쿼리 생성
-            const q = query(
-                collection(db, "approved"),
-                where("restaurantID", "==", selectedRestaurant?.restaurantID)
-            );
-
             // 문서 참조 생성
-            const docRef = doc(db, "approved", selectedRestaurant?.restaurantID || '');
+            const docRef = doc(db, "approved", restaurantID);
 
             // 문서 가져오기
             const docSnap = await getDoc(docRef);
@@ -210,19 +212,14 @@ export const useRestaurantDetailData = () => {
                 setComments(updatedComments);
                 setCommentText('');
             } else {
-                console.log("해당 문서를 찾을 수 없습니다.");
+                Alert.alert("알림", "해당 문서를 찾을 수 없습니다.");
             }
-            
-            // 쿼리 결과 가져오기
-            const querySnapshot = await getDocs(q);
-
-            querySnapshot.forEach((doc) => {
-                const restaurantData = doc.data();
-                console.log("Restaurant Data:", restaurantData);
-                // 여기서 restaurantData를 사용하여 원하는 작업 수행
-            });
         } catch (error) {
             console.error('댓글 추가 중 오류 발생:', error);
+            Alert.alert("알림", "댓글 추가 중 오류가 발생했습니다.");
+        } finally {
+            // 로딩 상태 비활성화
+            setLoading(false);
         }
     };
 
@@ -294,6 +291,82 @@ export const useRestaurantDetailData = () => {
         }
     };
 
+    // 댓글 삭제 메서드
+    const handleDeleteComment = async (commentId: string) => {
+        // restaurantID 확인
+        const restaurantID = selectedRestaurant?.restaurantID;
+        if (!restaurantID) {
+            Alert.alert("알림", "레스토랑 정보를 찾을 수 없습니다.");
+            return;
+        }
+
+        // 삭제 확인 대화상자 표시
+        Alert.alert(
+            "댓글 삭제",
+            "이 댓글을 정말 삭제하시겠습니까?",
+            [
+                { text: "취소", style: "cancel" },
+                { 
+                    text: "삭제", 
+                    style: "destructive",
+                    onPress: async () => {
+                        // 해당 댓글의 로딩 상태 활성화
+                        setDeletingCommentId(commentId);
+                        
+                        try {
+                            // 문서 참조 생성
+                            const docRef = doc(db, "approved", restaurantID);
+                            
+                            // 문서 가져오기
+                            const docSnap = await getDoc(docRef);
+                            
+                            if (docSnap.exists()) {
+                                const restaurantData = docSnap.data();
+                                
+                                // 기존 댓글 배열 가져오기
+                                const currentComments = restaurantData.comments || [];
+                                
+                                // 삭제할 댓글을 제외한 새 배열 생성
+                                const updatedComments = currentComments.filter(
+                                    (comment: Comment) => comment.id !== commentId
+                                );
+                                
+                                // 업데이트할 데이터 객체 생성
+                                const updatedRestaurantData = {
+                                    ...restaurantData,
+                                    comments: updatedComments
+                                };
+                                
+                                // Firestore 문서 업데이트
+                                await setDoc(docRef, updatedRestaurantData);
+                                console.log("댓글이 성공적으로 삭제되었습니다.");
+                                
+                                // 로컬 상태 업데이트
+                                setComments(updatedComments);
+                                
+                                // 성공 알림 표시
+                                Alert.alert("알림", "댓글이 삭제되었습니다.");
+                            } else {
+                                Alert.alert("알림", "해당 문서를 찾을 수 없습니다.");
+                            }
+                        } catch (error) {
+                            console.error('댓글 삭제 중 오류 발생:', error);
+                            Alert.alert("알림", "댓글 삭제 중 오류가 발생했습니다.");
+                        } finally {
+                            // 해당 댓글의 로딩 상태 비활성화
+                            setDeletingCommentId(null);
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    // 현재 사용자의 댓글인지 확인하는 함수
+    const isCurrentUserComment = (userId: string) => {
+        return user?.uid === userId;
+    };
+
     // 이미지 배열 준비 (없으면 기본 이미지 표시)
     const imageUrls = selectedRestaurant?.imageURLs && selectedRestaurant.imageURLs.length > 0 
         ? selectedRestaurant.imageURLs 
@@ -311,6 +384,7 @@ export const useRestaurantDetailData = () => {
         commentText,
         isLoggedIn,
         loading,
+        deletingCommentId,
         isFavorite,
         handlePhoneCall,
         handleOpenMap,
@@ -319,6 +393,7 @@ export const useRestaurantDetailData = () => {
         setCommentText,
         formatRelativeTime,
         handleFavorite,
-         // 로딩 상태 반환
+        handleDeleteComment,
+        isCurrentUserComment,
     };
 };

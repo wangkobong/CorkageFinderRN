@@ -26,7 +26,8 @@ export const useMypageData = () => {
     appleLogin,
     naverLogin,
     kakaoLogin,
-    logout 
+    logout,
+    deleteAccount 
   } = useAuthStore();
 
   // 로컬 상태 관리
@@ -125,6 +126,43 @@ export const useMypageData = () => {
     }
   };
 
+  // 회원탈퇴 핸들러
+  const handleDeleteAccount = async () => {
+    try {
+      Alert.alert(
+        '회원탈퇴',
+        '정말로 회원탈퇴를 진행하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
+        [
+          {
+            text: '취소',
+            style: 'cancel',
+          },
+          {
+            text: '탈퇴',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await deleteAccount();
+                Alert.alert('회원탈퇴 완료', '회원탈퇴가 성공적으로 처리되었습니다.');
+              } catch (error: any) {
+                // 오류가 발생한 경우 처리
+                if (error.message) {
+                  Alert.alert('오류', error.message);
+                } else {
+                  Alert.alert('오류', '회원탈퇴 처리 중 문제가 발생했습니다.');
+                }
+              }
+            },
+          },
+        ],
+        { cancelable: true }
+      );
+    } catch (error) {
+      setError(error);
+      Alert.alert('오류', '회원탈퇴 처리 중 문제가 발생했습니다.');
+    }
+  };
+
   // 팝업 닫기 핸들러
   const closeFeaturePopup = () => {
     setIsFeaturePopupVisible(false);
@@ -145,6 +183,7 @@ export const useMypageData = () => {
     handleKakaoLogin,
     handleNaverLogin,
     handleLogout,
+    handleDeleteAccount,
     handleFavoriteRestaurants,
     handleReviewManagement,
     handleApprove,

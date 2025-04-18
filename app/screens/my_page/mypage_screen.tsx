@@ -19,6 +19,7 @@ const MyPageScreen = () => {
         handleKakaoLogin,
         handleNaverLogin,
         handleLogout,
+        handleDeleteAccount,
         handleFavoriteRestaurants,
         handleReviewManagement,
         handleApprove,
@@ -107,11 +108,11 @@ const MyPageScreen = () => {
                     <Text style={styles.userName}>{userInfo.name || '로그인이 필요합니다'}</Text>
                     <Text style={styles.userEmail}>{userInfo.email}</Text>
                 </View>
-                {isAuthenticated && (
+                {/* {isAuthenticated && (
                     <TouchableOpacity style={styles.editButton}>
                         <Text style={styles.editButtonText}>수정</Text>
                     </TouchableOpacity>
-                )}
+                )} */}
             </View>
 
             {/* 구분선 */}
@@ -135,6 +136,14 @@ const MyPageScreen = () => {
                 onPress={handleLogout}
             >
                 <Text style={styles.logoutText}>로그아웃</Text>
+            </TouchableOpacity>
+            
+            {/* 회원탈퇴 버튼 */}
+            <TouchableOpacity 
+                style={styles.deleteAccountButton}
+                onPress={handleDeleteAccount}
+            >
+                <Text style={styles.deleteAccountText}>회원탈퇴</Text>
             </TouchableOpacity>
         </ScrollView>
     );
@@ -270,13 +279,28 @@ const styles = StyleSheet.create({
     logoutButton: {
         marginHorizontal: 20,
         marginTop: 20,
-        marginBottom: 0,
+        marginBottom: 10,
         padding: 15,
         borderRadius: 8,
         backgroundColor: '#f0f0f0',
         alignItems: 'center',
     },
     logoutText: {
+        fontSize: 16,
+        color: '#e74c3c',
+        fontWeight: '500',
+    },
+    deleteAccountButton: {
+        marginHorizontal: 20,
+        marginBottom: 20,
+        padding: 15,
+        borderRadius: 8,
+        backgroundColor: '#fff',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#e74c3c',
+    },
+    deleteAccountText: {
         fontSize: 16,
         color: '#e74c3c',
         fontWeight: '500',

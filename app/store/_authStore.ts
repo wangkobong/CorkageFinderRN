@@ -25,7 +25,7 @@ import {
 } from "@react-native-seoul/kakao-login";
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getAuth, signInWithCustomToken } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { LoginUser, Provider } from '../../api/models/user';
 
 interface UserData {
@@ -51,6 +51,7 @@ interface AuthState {
   kakaoLogin: () => Promise<void>;
   testConnection: () => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   initialize: () => Promise<void>;
   clearError: () => void;
   updateUserInfo: (user: User) => void;
@@ -659,6 +660,69 @@ export const useAuthStore = create<AuthState>()(
           set({ 
             isLoading: false, 
             error: error instanceof Error ? error.message : '테스트 연결 중 오류가 발생했습니다.'
+          });
+        }
+      },
+
+      // 회원탈퇴 메서드
+      deleteAccount: async () => {
+        try {
+          set({ isLoading: true, error: null });
+          
+          // 현재 사용자 가져오기
+          const currentUser = auth.currentUser;
+          if (!currentUser) {
+            throw new Error('로그인된 사용자가 없습니다.');
+          }
+          
+          const userId = currentUser.uid;
+          
+          // Firestore에서 사용자 데이터 삭제
+          const db = getFirestore();
+          const userDocRef = doc(db, 'users', userId);
+          
+          // Firestore에서 사용자 문서 완전히 삭제
+          await deleteDoc(userDocRef);
+          
+          // Firebase Authentication에서 사용자 삭제
+          await currentUser.delete();
+          
+          // AsyncStorage에서 모든 인증 관련 데이터 삭제
+          await AsyncStorage.removeItem('user');
+          await AsyncStorage.removeItem('auth_token');
+          await AsyncStorage.removeItem('user_logged_in');
+          
+          // 상태 업데이트
+          set({
+            isAuthenticated: false,
+            user: null,
+            isLoading: false,
+          });
+          
+          console.log('회원탈퇴 성공 및 모든 사용자 데이터 삭제됨');
+        } catch (error: any) {
+          console.error('회원탈퇴 중 오류:', error);
+          
+          // 재인증이 필요한 경우 처리
+          if (error.code === 'auth/requires-recent-login') {
+            set({ 
+              isLoading: false, 
+              error: '보안을 위해 다시 로그인 후 탈퇴해주세요.' 
+            });
+            
+            // 로그아웃 처리
+            try {
+              await get().logout();
+            } catch (logoutError) {
+              console.error('로그아웃 중 오류:', logoutError);
+            }
+            
+            return;
+          }
+          
+          set({ 
+            isLoading: false, 
+            error: error.message || '회원탈퇴 중 오류가 발생했습니다.' 
           });
         }
       },

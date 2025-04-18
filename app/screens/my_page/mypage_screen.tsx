@@ -122,7 +122,7 @@ const MyPageScreen = () => {
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>내 활동</Text>
                 {renderMenuItem('heart-outline', '찜한 식당', handleFavoriteRestaurants)}
-                {renderMenuItem('star-outline', '리뷰 관리', handleReviewManagement)}
+                {/* {renderMenuItem('star-outline', '리뷰 관리', handleReviewManagement)} */}
                 {userInfo.email === 'wangkobong@gmail.com' && 
                     renderMenuItem('checkmark-circle-outline', '승인하기', handleApprove)}
             </View>

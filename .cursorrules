@@ -1,0 +1,138 @@
+# Project Overview
+This is a React Native project using TypeScript and JavaScript, built with Expo (prebuild). The app provides users with a list of restaurants offering free or available corkage services. Features include restaurant discovery, map-based search, restaurant registration, and social logins.
+
+## Technology Stack
+- Languages: JavaScript, TypeScript
+- Framework: React Native, Expo (prebuild)
+- Key Libraries/Packages:
+  - firebase (authentication, Firestore, Storage)
+  - zustand (state management)
+  - expo-image (image caching)
+  - firebase-functions (custom backend logic)
+  - react-native-seoul/kakao-login (Kakao login)
+  - react-native-seoul/naver-login (Naver login)
+  - expo-router (navigation)
+- Navigation: Expo Router
+- Styling: React Native StyleSheet
+- State Management: Zustand with Persist middleware (AsyncStorage)
+- Image Handling: expo-image for caching
+
+## Directory Structure
+The project root contains configuration files (`package.json`, `app.json`) and directories like `app`, `ios`, `android`, `hooks`, `components`, and `functions`. Below is the key structure:
+
+- `app/`: Expo Router navigation files and main application code
+  - `(tabs)/`: Main tab bar navigation (e.g., `_layout.tsx`, `index.tsx`)
+  - `home/`: Route-specific navigation files for home tab
+    - `restaurant-detail.tsx`: Route handler for restaurant detail page
+    - `restaurants.tsx`: Route handler for category-specific restaurant list page
+  - `mypage/`: Route-specific navigation files for my page tab
+    - `favorite-restaurants.tsx`: Route handler for favorite restaurants page
+    - `pending-restaurants.tsx`: Route handler for pending restaurant approval page
+    - `pending-restaurant-detail.tsx`: Route handler for pending restaurant detail page
+  - `store/`: Zustand store files (e.g., `_authStore.ts`, `_restaurantStore.ts`)
+  - `screens/`: Screen component implementations
+    - `home/`: Home screen related components (e.g., `restaurant_detail_screen.tsx`, `home_screen.tsx`)
+    - `my_page/`: My page related components
+    - `register/`: Registration related components
+    - `around_me/`: Around me (map) related components
+  - `services/`: API and service managers
+    - `KakaoApiManager.ts`: Kakao API logic
+    - `RestaurantRegisterService/`: Firebase Firestore/Storage logic
+- `hooks/`: Custom hooks for logic separation
+  - `common/`: Common hooks used across screens (e.g., `useRestaurantDetailData.ts`)
+  - `home/`: Home screen specific hooks
+  - `mypage/`: My page specific hooks
+- `components/`: Reusable UI components
+- `api/`: API models and types
+- `functions/`: Firebase Functions
+  - `src/index.ts`: Firebase Functions logic
+- `ios/`, `android/`: Native platform code (managed by Expo prebuild)
+- `assets/`: Images, fonts, and other static assets
+
+## Design Patterns
+- Separation of concerns: Views and logic are separated using hooks in `hooks`.
+- State management: Zustand, with restaurant data fetched once on app start.
+- Avoided patterns: Singleton pattern.
+- Navigation: File-based routing with Expo Router (`app/` directory).
+
+## Coding Style
+- Use TypeScript for type safety.
+- Styling: Use `StyleSheet.create` for component styles.
+- Use functional components with arrow functions (e.g., `const MyComponent = () => {}`).
+- Explicit imports (avoid barrel files).
+- camelCase for variables/functions, lowercase with underscores for files (e.g., `restaurant_mini_card_view.tsx`).
+- Avoid class-based components.
+- Prefer organizing UI components into logical sections using helper functions within the component (e.g., `imageSection()`, `mainInfoSection()`, `corkageInfoSection()`) rather than creating multiple small components. This approach keeps related functionality together while maintaining readability.
+
+**Example of preferred component structure:**
+```typescript
+const RestaurantDetailScreen = () => {
+    // Helper function for image section
+    const imageSection = () => (
+        <View style={styles.imageSliderContainer}>
+            <FlatList data={imageUrls} ... />
+            <View style={styles.paginationContainer}>...</View>
+        </View>
+    );
+    
+    // Helper function for main info section
+    const mainInfoSection = () => (
+        <View style={styles.restaurantInfoSection}>
+            <Text style={styles.restaurantName}>{restaurantName}</Text>
+            ...
+        </View>
+    );
+    
+    return (
+        <View style={styles.container}>
+            {imageSection()}
+            <ScrollView>
+                {mainInfoSection()}
+                {corkageInfoSection()}
+                {businessInfoSection()}
+                {commentSection()}
+            </ScrollView>
+        </View>
+    );
+};
+```
+
+## Key Features
+
+### Home Screen
+- 6 category buttons (Korean, Japanese, Chinese, Western, Asian, Other) in `app/screens/home`.
+- Horizontal scroll for popular and corkage-free restaurants (`app/screens/home/component/restaurant_mini_card_view.tsx`).
+- Restaurant click navigates to `app/screens/home/restaurant_detail_screen.tsx`.
+
+### Nearby
+- Map view with restaurant markers.
+- Marker click shows card, card click navigates to `app/screens/home/restaurant_detail_screen.tsx`.
+
+### Registration
+- Logged-in users submit restaurant registration via `app/services/RestaurantRegisterService`.
+
+### My Page
+- Social logins: Apple/Google (Firebase Auth), Kakao/Naver (Firebase Functions in `functions/src/index.ts`).
+- Admin (`wangkobong@gmail.com`) approves registrations.
+- Shows liked restaurants.
+
+### Data Fetching
+- Restaurant data fetched once on app start, stored in Zustand (`app/store`).
+
+### Authentication
+- **Auto Login**:
+  - Zustand Persist stores auth state in AsyncStorage (`user_logged_in`, `user`).
+  - App start: `initialize` restores state, verified by Firebase `onAuthStateChanged`.
+- **Token Handling**:
+  - Social login tokens in AsyncStorage.
+  - Google/Apple: SDK → Firebase Auth.
+  - Kakao/Naver: SDK → Firebase Functions (`customLogin`) → Firebase token.
+  - Logout: `Firebase signOut`, clear AsyncStorage.
+- **Security**:
+  - Zustand `partialize` to filter sensitive data.
+  - Avoid storing sensitive info in AsyncStorage.
+
+## Constraints
+- Avoid: React Navigation (use Expo Router), Redux (use Zustand), Singleton pattern.
+- Prefer: `expo-image` for images, AsyncStorage via Zustand Persist, modular hooks.
+
